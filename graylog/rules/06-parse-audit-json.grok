@@ -1,0 +1,26 @@
+rule "Nutanix - Parse Audit JSON"
+when
+    has_field("message") AND
+    contains(to_string($message.message), "consolidated_audit:")
+then
+    let msg = to_string($message.message);
+    let json_part = regex_replace(".*consolidated_audit:\\s*(\\{.*\\})", msg, "$1");
+    let parsed = parse_json(to_string(json_part));
+    let json_fields = select_jsonpath(parsed, {
+        userName: "$.userName",
+        operationType: "$.operationType",
+        recordType: "$.recordType",
+        severity: "$.severity",
+        defaultMsg: "$.defaultMsg",
+        affectedEntity: "$.affectedEntityList[0].name",
+        entityType: "$.affectedEntityList[0].entityType"
+    });
+    set_field("nutanix_user", to_string(json_fields.userName));
+    set_field("nutanix_operation", to_string(json_fields.operationType));
+    set_field("nutanix_record_type", to_string(json_fields.recordType));
+    set_field("nutanix_severity", to_string(json_fields.severity));
+    set_field("nutanix_message", to_string(json_fields.defaultMsg));
+    set_field("nutanix_entity", to_string(json_fields.affectedEntity));
+    set_field("nutanix_entity_type", to_string(json_fields.entityType));
+    set_field("nutanix_log_type", "audit");
+end

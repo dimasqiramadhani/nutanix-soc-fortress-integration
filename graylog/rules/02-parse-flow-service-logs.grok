@@ -1,0 +1,10 @@
+rule "Nutanix - Parse Flow Service Logs"
+when
+    has_field("message") AND
+    contains(to_string($message.message), "flow_service_logs")
+then
+    let msg = to_string($message.message);
+    set_field("nutanix_log_type", "flow_service");
+    set_field("nutanix_flow_level", regex_replace(".*Z\\s+([A-Z]+)\\s+.*", msg, "$1"));
+    set_field("nutanix_flow_message", regex_replace(".*\\d{4}\\s+(.*)", msg, "$1"));
+end

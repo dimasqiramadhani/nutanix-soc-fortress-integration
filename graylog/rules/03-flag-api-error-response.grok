@@ -1,0 +1,11 @@
+rule "Nutanix - Flag API Error Response"
+when
+    has_field("message") AND
+    contains(to_string($message.message), "responseCode=") AND
+    NOT contains(to_string($message.message), "responseCode=200")
+then
+    let msg = to_string($message.message);
+    set_field("nutanix_response_code", regex_replace(".*responseCode=([0-9]+).*", msg, "$1"));
+    set_field("nutanix_api_error", true);
+    set_field("nutanix_alert_type", "api_error");
+end

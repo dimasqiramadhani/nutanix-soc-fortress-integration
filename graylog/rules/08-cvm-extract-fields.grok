@@ -1,0 +1,12 @@
+rule "Nutanix CVM - Extract Fields"
+when
+    has_field("message") AND contains(to_string($message.message), "audispd")
+then
+    let msg = to_string($message.message);
+    set_field("ntnx_node", regex_replace(".*node=([^ ]+).*", msg, "$1"));
+    set_field("ntnx_type", regex_replace(".*type=([^ ]+).*", msg, "$1"));
+    set_field("ntnx_acct", regex_replace(".*acct=\"([^\"]+)\".*", msg, "$1"));
+    set_field("ntnx_exe", regex_replace(".*exe=\"([^\"]+)\".*", msg, "$1"));
+    set_field("ntnx_result", regex_replace(".*res=([^ ']+).*", msg, "$1"));
+    set_field("nutanix_log_type", "cvm_audit");
+end

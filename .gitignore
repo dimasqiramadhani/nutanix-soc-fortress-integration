@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+grafana_data/
+opensearch_data/
+mongo_data/

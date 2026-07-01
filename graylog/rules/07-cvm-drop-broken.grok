@@ -1,0 +1,6 @@
+rule "Nutanix CVM - Drop Broken"
+when
+    has_field("message") AND to_string($message.message) == "o"
+then
+    drop_message();
+end

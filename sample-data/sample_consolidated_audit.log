@@ -1,0 +1,5 @@
+# Contoh format consolidated_audit (JSON) - referensi untuk rule "Parse Audit JSON".
+# Format ini JARANG muncul di deployment nyata (api_audit lebih dominan),
+# tapi disertakan agar rule bisa diuji. Semua data fiktif.
+<134>2026-07-01T02:00:00.000+07:00 NTNX-10-0-0-45-A-PCVM consolidated_audit: {"affectedEntityList":[{"entityType":"cluster","name":"LAB-CLUSTER","uuid":"aaaa1111-bbbb-2222-cccc-333344445555"}],"defaultMsg":"User logged in to Prism Central","operationType":"Login","recordType":"Audit","severity":"Audit","userName":"andi.pratama@lab.local","userUuid":"user-uuid-0001","uuid":"event-uuid-0001"}
+<134>2026-07-01T02:05:00.000+07:00 NTNX-10-0-0-45-A-PCVM consolidated_audit: {"affectedEntityList":[{"entityType":"vm","name":"LAB-VM-01","uuid":"11111111-2222-3333-4444-555555555555"}],"defaultMsg":"VM deleted","operationType":"Delete","recordType":"Audit","severity":"Audit","userName":"budi.santoso@lab.local","userUuid":"user-uuid-0002","uuid":"event-uuid-0002"}

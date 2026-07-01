@@ -1,0 +1,10 @@
+pipeline "Nutanix - Prism Central Parser"
+stage 0 match either
+    rule "Nutanix - Parse API Audit";
+    rule "Nutanix - Parse Flow Service Logs";
+    rule "Nutanix - Parse Audit JSON";
+    rule "Nutanix - Flag API Error Response";
+stage 1 match either
+    rule "Nutanix - Flag External Access";
+    rule "Nutanix - Flag Critical Operations";
+end

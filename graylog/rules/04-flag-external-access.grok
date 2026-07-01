@@ -1,0 +1,8 @@
+rule "Nutanix - Flag External Access"
+when
+    has_field("nutanix_client_type") AND
+    contains(to_string($message.nutanix_client_type), "External")
+then
+    set_field("nutanix_external_access", true);
+    set_field("nutanix_alert_type", "external_api_access");
+end

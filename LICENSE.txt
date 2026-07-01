@@ -1,0 +1,13 @@
+Nutanix SOC Sandbox - Educational Use Only
+======================================
+Materi ini disediakan untuk keperluan pembelajaran dan demonstrasi.
+
+- Seluruh data, hostname, username, UUID, dan IP address adalah FIKTIF
+  dan tidak merepresentasikan sistem atau organisasi nyata mana pun.
+- Kredensial yang tercantum (password sandbox) hanya untuk lingkungan lokal
+  terisolasi. JANGAN gunakan di produksi.
+- "Nutanix", "Prism Central", "Graylog", "OpenSearch", dan "Grafana" adalah
+  merek dagang milik pemiliknya masing-masing. Sandbox ini tidak berafiliasi
+  dengan, tidak didukung oleh, dan tidak disponsori oleh pemilik merek tsb.
+
+Gunakan dengan tanggung jawab sendiri.

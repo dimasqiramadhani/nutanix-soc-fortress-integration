@@ -1,0 +1,14 @@
+rule "Nutanix - Parse API Audit"
+when
+    has_field("message") AND
+    contains(to_string($message.message), "api_audit:")
+then
+    let msg = to_string($message.message);
+    set_field("nutanix_client_type", regex_replace(".*clientType=([^|]+)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_user", regex_replace(".*userName=([^|]+)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_http_method", regex_replace(".*httpMethod=([^|]+)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_api_version", regex_replace(".*NutanixApiVersion=([^|]+)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_endpoint", regex_replace(".*restEndpoint=([^|]*)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_entity_uuid", regex_replace(".*entityUuid=([^|]*)\\|\\|.*", msg, "$1"));
+    set_field("nutanix_log_type", "api_audit");
+end

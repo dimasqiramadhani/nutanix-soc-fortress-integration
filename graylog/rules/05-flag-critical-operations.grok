@@ -1,0 +1,11 @@
+rule "Nutanix - Flag Critical Operations"
+when
+    has_field("nutanix_http_method") AND (
+        contains(to_string($message.nutanix_http_method), "DELETE") OR
+        contains(to_string($message.nutanix_http_method), "PUT") OR
+        contains(to_string($message.nutanix_http_method), "POST")
+    )
+then
+    set_field("nutanix_critical_operation", true);
+    set_field("nutanix_alert_type", "critical_operation");
+end

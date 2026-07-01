@@ -1,0 +1,132 @@
+{
+  "__comment": "Nutanix SOC Sandbox Dashboard. PENTING: semua Group By pakai field tanpa .keyword karena field hasil pipeline Graylog bertipe text tanpa sub-field keyword. Panel breakdown pakai bucket aggregation Terms + metric Count.",
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "schemaVersion": 39,
+  "tags": ["nutanix", "soc", "sandbox"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "title": "Nutanix - Network Logs Monitoring (SANDBOX)",
+  "uid": "nutanix-soc-sandbox",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Activity Timeline",
+      "type": "timeseries",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "date_histogram", "field": "timestamp",
+              "settings": { "interval": "auto" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "External vs UI Access",
+      "type": "piechart",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "legend": { "displayMode": "list", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "pie"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "nutanix_client_type:*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "nutanix_client_type",
+              "settings": { "size": "5", "order": "desc", "orderBy": "_count" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Top Endpoints",
+      "type": "barchart",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "nutanix_endpoint:*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "nutanix_endpoint",
+              "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "User Activity",
+      "type": "table",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "nutanix_user:*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "nutanix_user",
+              "settings": { "size": "20", "order": "desc", "orderBy": "_count" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "HTTP Methods Distribution",
+      "type": "piechart",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 16 },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "right", "values": ["value"] },
+        "pieType": "donut"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "nutanix_http_method:*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "nutanix_http_method",
+              "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "API Errors (responseCode != 200)",
+      "type": "table",
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "NUTANIX" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "nutanix_api_error:true",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "nutanix_response_code",
+              "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

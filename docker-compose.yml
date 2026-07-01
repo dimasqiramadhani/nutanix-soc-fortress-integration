@@ -1,0 +1,79 @@
+# ===========================================================================
+# Nutanix SOC Sandbox - Full Stack (Graylog + OpenSearch + Grafana)
+# ===========================================================================
+# Sandbox environment untuk mensimulasikan pipeline Nutanix -> Graylog ->
+# OpenSearch -> Grafana. SEMUA kredensial di sini untuk SANDBOX LOKAL saja.
+#
+# Jalankan:  docker compose up -d
+# Akses:
+#   - Graylog  : http://localhost:9000  (admin / admin)
+#   - Grafana  : http://localhost:3000  (admin / admin)
+#   - OpenSearch: https://localhost:9200 (admin / SandboxAdmin123!)
+# ===========================================================================
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: sandbox-mongodb
+    volumes:
+      - mongo_data:/data/db
+    networks: [socsandbox]
+    restart: unless-stopped
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.1
+    container_name: sandbox-opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=SandboxAdmin123!"
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ports: ["9200:9200"]
+    networks: [socsandbox]
+    restart: unless-stopped
+
+  graylog:
+    image: graylog/graylog:6.1
+    container_name: sandbox-graylog
+    environment:
+      # Password 'admin' (sha256). Ganti untuk selain sandbox.
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpeppersandboxonlychangeme12345678
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
+      - GRAYLOG_ELASTICSEARCH_HOSTS=https://admin:SandboxAdmin123!@opensearch:9200
+      - GRAYLOG_ELASTICSEARCH_INDEX_PREFIX=graylog
+      - GRAYLOG_MONGODB_URI=mongodb://mongodb:27017/graylog
+    depends_on: [mongodb, opensearch]
+    ports:
+      - "9000:9000"   # web UI
+      - "5141:5141/tcp"  # Nutanix syslog input
+    networks: [socsandbox]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: sandbox-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-opensearch-datasource
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports: ["3000:3000"]
+    depends_on: [opensearch]
+    networks: [socsandbox]
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  opensearch_data:
+  grafana_data:
+
+networks:
+  socsandbox:
+    driver: bridge
