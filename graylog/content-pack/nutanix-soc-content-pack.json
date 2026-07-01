@@ -1,0 +1,235 @@
+{
+  "v": "1",
+  "id": "60139e1d-9010-43b6-bea6-e4b7404361cc",
+  "rev": 1,
+  "name": "Nutanix SOC Sandbox",
+  "summary": "Pipelines & rules untuk parsing log Nutanix Prism Central (sandbox).",
+  "description": "Berisi 8 pipeline rules dan 2 pipeline untuk parsing api_audit, consolidated_audit, flow_service, dan cvm_audit. Semua data referensi fiktif.",
+  "vendor": "SOC Sandbox",
+  "url": "",
+  "parameters": [],
+  "entities": [
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "8ad954f9-d246-4424-9403-2cf5e64bcc4b",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Parse API Audit"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Parse API Audit\"\nwhen\n    has_field(\"message\") AND\n    contains(to_string($message.message), \"api_audit:\")\nthen\n    let msg = to_string($message.message);\n    set_field(\"nutanix_client_type\", regex_replace(\".*clientType=([^|]+)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_user\", regex_replace(\".*userName=([^|]+)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_http_method\", regex_replace(\".*httpMethod=([^|]+)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_api_version\", regex_replace(\".*NutanixApiVersion=([^|]+)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_endpoint\", regex_replace(\".*restEndpoint=([^|]*)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_entity_uuid\", regex_replace(\".*entityUuid=([^|]*)\\\\|\\\\|.*\", msg, \"$1\"));\n    set_field(\"nutanix_log_type\", \"api_audit\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "73abae24-59a0-4eac-bd2a-d385c04306bc",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Parse Flow Service Logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Parse Flow Service Logs\"\nwhen\n    has_field(\"message\") AND\n    contains(to_string($message.message), \"flow_service_logs\")\nthen\n    let msg = to_string($message.message);\n    set_field(\"nutanix_log_type\", \"flow_service\");\n    set_field(\"nutanix_flow_level\", regex_replace(\".*Z\\\\s+([A-Z]+)\\\\s+.*\", msg, \"$1\"));\n    set_field(\"nutanix_flow_message\", regex_replace(\".*\\\\d{4}\\\\s+(.*)\", msg, \"$1\"));\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "6032cb7e-70fb-4f1a-b54a-60f93719c179",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Flag API Error Response"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Flag API Error Response\"\nwhen\n    has_field(\"message\") AND\n    contains(to_string($message.message), \"responseCode=\") AND\n    NOT contains(to_string($message.message), \"responseCode=200\")\nthen\n    let msg = to_string($message.message);\n    set_field(\"nutanix_response_code\", regex_replace(\".*responseCode=([0-9]+).*\", msg, \"$1\"));\n    set_field(\"nutanix_api_error\", true);\n    set_field(\"nutanix_alert_type\", \"api_error\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "7191f966-8e22-4d78-8aa9-454d1eddb998",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Flag External Access"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Flag External Access\"\nwhen\n    has_field(\"nutanix_client_type\") AND\n    contains(to_string($message.nutanix_client_type), \"External\")\nthen\n    set_field(\"nutanix_external_access\", true);\n    set_field(\"nutanix_alert_type\", \"external_api_access\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "715f4c0f-8589-482e-b3be-43ad7d532cd1",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Flag Critical Operations"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Flag Critical Operations\"\nwhen\n    (\n        has_field(\"nutanix_http_method\") AND (\n            contains(to_string($message.nutanix_http_method), \"DELETE\") OR\n            contains(to_string($message.nutanix_http_method), \"PUT\") OR\n            contains(to_string($message.nutanix_http_method), \"POST\")\n        )\n    ) OR (\n        has_field(\"nutanix_operation\") AND (\n            contains(to_string($message.nutanix_operation), \"Delete\") OR\n            contains(to_string($message.nutanix_operation), \"Update\") OR\n            contains(to_string($message.nutanix_operation), \"Create\")\n        )\n    )\nthen\n    set_field(\"nutanix_critical_operation\", true);\n    set_field(\"nutanix_alert_type\", \"critical_operation\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "7ac48525-ca3f-49f9-8aae-fa77f95b8eac",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Parse Audit JSON"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix - Parse Audit JSON\"\nwhen\n    has_field(\"message\") AND\n    contains(to_string($message.message), \"consolidated_audit:\")\nthen\n    let msg = to_string($message.message);\n    let json_part = regex_replace(\".*consolidated_audit:\\\\s*(\\\\{.*\\\\})\", msg, \"$1\");\n    let parsed = parse_json(to_string(json_part));\n    let json_fields = select_jsonpath(parsed, {\n        userName: \"$.userName\",\n        operationType: \"$.operationType\",\n        recordType: \"$.recordType\",\n        severity: \"$.severity\",\n        defaultMsg: \"$.defaultMsg\",\n        affectedEntity: \"$.affectedEntityList[0].name\",\n        entityType: \"$.affectedEntityList[0].entityType\"\n    });\n    set_field(\"nutanix_user\", to_string(json_fields.userName));\n    set_field(\"nutanix_operation\", to_string(json_fields.operationType));\n    set_field(\"nutanix_record_type\", to_string(json_fields.recordType));\n    set_field(\"nutanix_severity\", to_string(json_fields.severity));\n    set_field(\"nutanix_message\", to_string(json_fields.defaultMsg));\n    set_field(\"nutanix_entity\", to_string(json_fields.affectedEntity));\n    set_field(\"nutanix_entity_type\", to_string(json_fields.entityType));\n    set_field(\"nutanix_log_type\", \"audit\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "a557e7ee-8ee1-49f6-a8f7-676ce56678d7",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix CVM - Drop Broken"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix CVM - Drop Broken\"\nwhen\n    has_field(\"message\") AND to_string($message.message) == \"o\"\nthen\n    drop_message();\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "ee7cb4f8-21be-49b5-9596-8e41f60de6fa",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix CVM - Extract Fields"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"Nutanix CVM - Extract Fields\"\nwhen\n    has_field(\"message\") AND contains(to_string($message.message), \"audispd\")\nthen\n    let msg = to_string($message.message);\n    set_field(\"ntnx_node\", regex_replace(\".*node=([^ ]+).*\", msg, \"$1\"));\n    set_field(\"ntnx_type\", regex_replace(\".*type=([^ ]+).*\", msg, \"$1\"));\n    set_field(\"ntnx_acct\", regex_replace(\".*acct=\\\"([^\\\"]+)\\\".*\", msg, \"$1\"));\n    set_field(\"ntnx_exe\", regex_replace(\".*exe=\\\"([^\\\"]+)\\\".*\", msg, \"$1\"));\n    set_field(\"ntnx_result\", regex_replace(\".*res=([^ ']+).*\", msg, \"$1\"));\n    set_field(\"nutanix_log_type\", \"cvm_audit\");\nend"
+        }
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "97675891-098b-4ba0-85a1-6034adb8a37e",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - Prism Central Parser"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"Nutanix - Prism Central Parser\"\nstage 0 match either\n    rule \"Nutanix - Parse API Audit\";\n    rule \"Nutanix - Parse Flow Service Logs\";\n    rule \"Nutanix - Parse Audit JSON\";\n    rule \"Nutanix - Flag API Error Response\";\nstage 1 match either\n    rule \"Nutanix - Flag External Access\";\n    rule \"Nutanix - Flag Critical Operations\";\nend"
+        },
+        "connected_streams": []
+      }
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "ee3d4781-d771-4c6c-9068-f434cb098985",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Nutanix - OS Audit Parser"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"Nutanix - OS Audit Parser\"\nstage 0 match either\n    rule \"Nutanix CVM - Drop Broken\";\nstage 1 match either\n    rule \"Nutanix CVM - Extract Fields\";\nend"
+        },
+        "connected_streams": []
+      }
+    }
+  ]
+}

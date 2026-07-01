@@ -1,0 +1,8 @@
+# Nutanix SOC Sandbox : Dependensi Python
+#
+# Seluruh skrip, yaitu generate_sample_logs.py, feed_logs.py,
+# simulate_pipeline.py, dan validate.py, hanya menggunakan pustaka standar
+# Python versi 3.8 atau lebih baru. Tidak ada dependensi eksternal yang wajib.
+#
+# Opsional, hanya untuk memvalidasi YAML saat pengembangan:
+#   pyyaml>=6.0

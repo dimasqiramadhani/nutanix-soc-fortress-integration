@@ -1,11 +1,11 @@
 # ===========================================================================
-# Nutanix SOC Sandbox - Full Stack (Graylog + OpenSearch + Grafana)
+# Nutanix SOC Sandbox : Tumpukan Penuh (Graylog, OpenSearch, dan Grafana)
 # ===========================================================================
-# Sandbox environment untuk mensimulasikan pipeline Nutanix -> Graylog ->
-# OpenSearch -> Grafana. SEMUA kredensial di sini untuk SANDBOX LOKAL saja.
+# Lingkungan sandbox untuk menyimulasikan pipeline Nutanix menuju Graylog,
+# OpenSearch, lalu Grafana. Seluruh kredensial hanya untuk sandbox lokal.
 #
-# Jalankan:  docker compose up -d
-# Akses:
+# Menjalankan:  docker compose up -d
+# Akses layanan:
 #   - Graylog  : http://localhost:9000  (admin / admin)
 #   - Grafana  : http://localhost:3000  (admin / admin)
 #   - OpenSearch: https://localhost:9200 (admin / SandboxAdmin123!)
@@ -40,7 +40,7 @@ services:
     image: graylog/graylog:6.1
     container_name: sandbox-graylog
     environment:
-      # Password 'admin' (sha256). Ganti untuk selain sandbox.
+      # Kata sandi 'admin' dalam bentuk sha256. Ganti untuk selain sandbox.
       - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
       - GRAYLOG_PASSWORD_SECRET=somepasswordpeppersandboxonlychangeme12345678
       - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/

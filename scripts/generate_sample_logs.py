@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox - Sample Log Generator
-=======================================
-Menghasilkan log Nutanix Prism Central SINTETIS (fiktif) untuk sandbox.
-Semua hostname, user, UUID, dan IP di sini adalah DUMMY untuk keperluan
-belajar/demo. Tidak ada data produksi/nyata di dalamnya.
+Nutanix SOC Sandbox : Pembangkit Log Contoh
+===========================================
+Skrip ini menghasilkan log Nutanix Prism Central sintetis dan fiktif untuk
+keperluan sandbox. Seluruh hostname, pengguna, UUID, dan alamat IP di dalamnya
+bersifat contoh untuk pembelajaran dan demonstrasi. Tidak ada data produksi
+maupun data nyata di dalamnya.
 
-Format yang dihasilkan meniru struktur log asli Prism Central:
-  - api_audit    (key-value)
-  - cvm_audit    (auditd/audispd)
-  - flow_service (microsegmentation)
+Format yang dihasilkan meniru struktur log asli Prism Central, yaitu:
+  api_audit          (key-value)
+  cvm_audit          (auditd atau audispd)
+  flow_service       (microsegmentation)
+  consolidated_audit (JSON)
 
-Usage:
+Contoh penggunaan:
   python3 generate_sample_logs.py --count 2000 --out ../sample-data/sandbox_nutanix_logs.csv
 """
 
@@ -170,6 +172,37 @@ def make_flow_service(dt):
     return host, msg
 
 
+# consolidated_audit (JSON) - untuk menguji rule Parse Audit JSON
+AUDIT_OPS = [
+    ("Login", "User logged in to Prism Central", "cluster", "SANDBOX-CLUSTER"),
+    ("Logout", "User logged out from Prism Central", "cluster", "SANDBOX-CLUSTER"),
+    ("Create", "VM created", "vm", "SANDBOX-VM-01"),
+    ("Update", "VM configuration updated", "vm", "SANDBOX-VM-02"),
+    ("Delete", "VM deleted", "vm", "SANDBOX-VM-03"),
+]
+
+
+def make_consolidated_audit(dt):
+    import json as _json
+    host = PCVM
+    op, msg_text, etype, ename = random.choice(AUDIT_OPS)
+    user = random.choice(HUMAN_USERS) + "@sandbox.local"
+    payload = {
+        "affectedEntityList": [
+            {"entityType": etype, "name": ename, "uuid": rand_uuid()}
+        ],
+        "defaultMsg": msg_text,
+        "operationType": op,
+        "recordType": "Audit",
+        "severity": "Audit",
+        "userName": user,
+        "userUuid": rand_uuid(),
+        "uuid": rand_uuid(),
+    }
+    msg = f"{host} consolidated_audit: {_json.dumps(payload, separators=(',', ':'))}"
+    return host, msg
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--count", type=int, default=2000)
@@ -179,8 +212,9 @@ def main():
 
     random.seed(args.seed)
 
-    # Distribusi mirip data nyata: api_audit dominan, cvm audit banyak, flow sedikit
-    weights = [("api", 0.57), ("cvm", 0.40), ("flow", 0.03)]
+    # Distribusi mirip data nyata: api_audit dominan, cvm audit banyak,
+    # flow & consolidated_audit sedikit
+    weights = [("api", 0.55), ("cvm", 0.38), ("flow", 0.03), ("consolidated", 0.04)]
 
     start = datetime.now() - timedelta(hours=6)
     rows = []
@@ -200,8 +234,10 @@ def main():
             host, msg = make_api_audit(dt)
         elif kind == "cvm":
             host, msg = make_cvm_audit(dt)
-        else:
+        elif kind == "flow":
             host, msg = make_flow_service(dt)
+        else:
+            host, msg = make_consolidated_audit(dt)
 
         # baris CSV: timestamp;source;message (semicolon delimited, meniru export Graylog)
         full = f"{host} {msg}" if not msg.startswith(host) else msg

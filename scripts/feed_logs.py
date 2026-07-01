@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox - Log Feeder
-============================
-Membaca sandbox_nutanix_logs.csv dan mengirim tiap baris ke Graylog Syslog TCP
-input (default localhost:5141), meniru Nutanix yang forward syslog.
+Nutanix SOC Sandbox : Pengirim Log
+==================================
+Skrip ini membaca berkas sandbox_nutanix_logs.csv dan mengirim tiap baris ke
+input Graylog Syslog TCP (bawaan localhost:5141), meniru Nutanix yang
+meneruskan syslog. Dengan demikian, perangkat Nutanix nyata tidak diperlukan.
 
-Ini menggantikan CVM/PCVM asli - jadi tidak perlu perangkat Nutanix nyata.
-
-Usage:
+Contoh penggunaan:
   python3 feed_logs.py --host localhost --port 5141 \
       --file ../sample-data/sandbox_nutanix_logs.csv --rate 20
 
-  --rate = pesan per detik (0 = secepat mungkin)
-  --loop = ulangi terus (untuk simulasi stream live)
+  --rate berarti jumlah pesan per detik (nilai 0 berarti secepat mungkin)
+  --loop berarti mengulang terus untuk menyimulasikan aliran langsung
 """
 
 import argparse

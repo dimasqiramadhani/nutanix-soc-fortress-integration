@@ -1,9 +1,17 @@
 rule "Nutanix - Flag Critical Operations"
 when
-    has_field("nutanix_http_method") AND (
-        contains(to_string($message.nutanix_http_method), "DELETE") OR
-        contains(to_string($message.nutanix_http_method), "PUT") OR
-        contains(to_string($message.nutanix_http_method), "POST")
+    (
+        has_field("nutanix_http_method") AND (
+            contains(to_string($message.nutanix_http_method), "DELETE") OR
+            contains(to_string($message.nutanix_http_method), "PUT") OR
+            contains(to_string($message.nutanix_http_method), "POST")
+        )
+    ) OR (
+        has_field("nutanix_operation") AND (
+            contains(to_string($message.nutanix_operation), "Delete") OR
+            contains(to_string($message.nutanix_operation), "Update") OR
+            contains(to_string($message.nutanix_operation), "Create")
+        )
     )
 then
     set_field("nutanix_critical_operation", true);

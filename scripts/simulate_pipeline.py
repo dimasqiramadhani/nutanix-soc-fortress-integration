@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox - Offline Pipeline Simulator
-============================================
-Menerapkan LOGIKA pipeline rule (versi Python) ke sample CSV, lalu
-menampilkan ringkasan field hasil parsing + statistik - TANPA perlu
-Graylog/OpenSearch. Berguna untuk cepat memverifikasi bahwa rule
-menghasilkan field yang benar (mirror dari rule .grok).
+Nutanix SOC Sandbox : Simulasi Pipeline Luring
+==============================================
+Skrip ini menerapkan logika aturan pipeline versi Python terhadap CSV contoh,
+lalu menampilkan ringkasan field hasil parsing beserta statistiknya, tanpa
+memerlukan Graylog maupun OpenSearch. Skrip berguna untuk memeriksa secara
+cepat bahwa aturan menghasilkan field yang benar sebagai cerminan berkas .grok.
 
-Usage:
+Contoh penggunaan:
   python3 simulate_pipeline.py --file ../sample-data/sandbox_nutanix_logs.csv
 """
 
@@ -57,6 +57,30 @@ def parse_cvm(msg, out):
     return True
 
 
+def parse_consolidated_audit(msg, out):
+    if "consolidated_audit:" not in msg:
+        return False
+    import json as _json
+    m = re.search(r"consolidated_audit:\s*(\{.*\})", msg)
+    if not m:
+        return False
+    try:
+        d = _json.loads(m.group(1))
+    except Exception:
+        return False
+    out["nutanix_log_type"] = "audit"
+    out["nutanix_user"] = d.get("userName", "")
+    out["nutanix_operation"] = d.get("operationType", "")
+    out["nutanix_record_type"] = d.get("recordType", "")
+    out["nutanix_severity"] = d.get("severity", "")
+    out["nutanix_message"] = d.get("defaultMsg", "")
+    ael = d.get("affectedEntityList", [])
+    if ael:
+        out["nutanix_entity"] = ael[0].get("name", "")
+        out["nutanix_entity_type"] = ael[0].get("entityType", "")
+    return True
+
+
 def flag_api_error(msg, out):
     if "responseCode=" in msg and "responseCode=200" not in msg:
         m = re.search(r"responseCode=([0-9]+)", msg)
@@ -72,14 +96,19 @@ def flag_external(out):
 
 
 def flag_critical(out):
+    # method write (api_audit) ATAU operationType write (consolidated_audit)
     if out.get("nutanix_http_method") in ("DELETE", "PUT", "POST"):
+        out["nutanix_critical_operation"] = "true"
+        out.setdefault("nutanix_alert_type", "critical_operation")
+    elif out.get("nutanix_operation") in ("Delete", "Update", "Create"):
         out["nutanix_critical_operation"] = "true"
         out.setdefault("nutanix_alert_type", "critical_operation")
 
 
 def process(msg):
     out = {}
-    if not (parse_api_audit(msg, out) or parse_flow(msg, out) or parse_cvm(msg, out)):
+    if not (parse_api_audit(msg, out) or parse_flow(msg, out)
+            or parse_consolidated_audit(msg, out) or parse_cvm(msg, out)):
         out["nutanix_log_type"] = "unparsed"
     flag_api_error(msg, out)
     flag_external(out)
