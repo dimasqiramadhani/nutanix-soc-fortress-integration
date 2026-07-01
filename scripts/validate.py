@@ -52,6 +52,25 @@ def section(t):
     print("\n" + "=" * 58 + f"\n{t}\n" + "=" * 58)
 
 
+# Directories and binary file types that are not part of the project text and
+# must be skipped during content scans (e.g. Git internals, images, archives).
+IGNORE_DIRS = ("__pycache__", ".git", "node_modules", ".venv", "venv")
+IGNORE_EXTS = (
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".svg",
+    ".zip", ".gz", ".tar", ".pdf", ".xlsx", ".docx", ".pptx",
+    ".pyc", ".so", ".bin", ".ttf", ".woff", ".woff2",
+)
+
+
+def skip_dir(dirpath):
+    parts = dirpath.replace("\\", "/").split("/")
+    return any(d in parts for d in IGNORE_DIRS)
+
+
+def skip_file(filename):
+    return filename.lower().endswith(IGNORE_EXTS)
+
+
 # ---------------------------------------------------------------------------
 section("1. JSON Validity")
 for jf in [
@@ -195,10 +214,12 @@ section("6. No Leftover Word 'lab'")
 leftover = []
 SELF = os.path.abspath(__file__)
 for dirpath, _, files in os.walk(ROOT):
-    if "__pycache__" in dirpath:
+    if skip_dir(dirpath):
         continue
     for fn in files:
         fp = os.path.join(dirpath, fn)
+        if skip_file(fn):
+            continue
         if os.path.abspath(fp) == SELF:
             continue  # skip the validator itself (it contains the word 'lab' in its check messages)
         try:
@@ -341,10 +362,12 @@ for md in ["README.md", "docs/ARCHITECTURE.md"]:
 section("12. No Em Dash or En Dash")
 dash_files = []
 for dirpath, _, files in os.walk(ROOT):
-    if "__pycache__" in dirpath:
+    if skip_dir(dirpath):
         continue
     for fn in files:
         fp = os.path.join(dirpath, fn)
+        if skip_file(fn):
+            continue
         try:
             txt = open(fp, encoding="utf-8", errors="ignore").read()
         except Exception:
