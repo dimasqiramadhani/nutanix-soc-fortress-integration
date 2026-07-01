@@ -142,3 +142,11 @@ Beberapa pelajaran penting yang perlu diperhatikan dirangkum sebagai berikut.
 4. **Operasi kritis relatif jarang** karena method GET lebih dominan. Sedikitnya jumlah POST, PUT, atau DELETE merupakan kondisi yang wajar pada lingkungan yang stabil dan bukan merupakan kesalahan.
 
 Penjelasan lebih lanjut dapat dilihat pada folder `docs/`.
+
+## Author
+
+Dimasqi Ramadhani, Security Engineer
+
+- [Portfolio](https://dimasqiramadhani.com)
+- [GitHub](https://github.com/dimasqiramadhani)
+- [Linkedin](https://linkedin.com/in/dimasqiramadhani)
