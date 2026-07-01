@@ -1,5 +1,5 @@
-# Contoh format consolidated_audit (JSON) sebagai referensi untuk aturan Parse Audit JSON.
-# Format ini relatif jarang muncul pada penerapan nyata karena api_audit lebih dominan,
-# namun tetap disertakan agar aturan dapat diuji. Seluruh data bersifat fiktif.
+# Example of the consolidated_audit (JSON) format as a reference for the Parse Audit JSON rule.
+# This format appears relatively rarely in real deployments because api_audit is more dominant,
+# but it is still included so the rule can be tested. All data is fictional.
 <134>2026-07-01T02:00:00.000+07:00 NTNX-10-0-0-45-A-PCVM consolidated_audit: {"affectedEntityList":[{"entityType":"cluster","name":"SANDBOX-CLUSTER","uuid":"aaaa1111-bbbb-2222-cccc-333344445555"}],"defaultMsg":"User logged in to Prism Central","operationType":"Login","recordType":"Audit","severity":"Audit","userName":"andi.pratama@sandbox.local","userUuid":"user-uuid-0001","uuid":"event-uuid-0001"}
 <134>2026-07-01T02:05:00.000+07:00 NTNX-10-0-0-45-A-PCVM consolidated_audit: {"affectedEntityList":[{"entityType":"vm","name":"SANDBOX-VM-01","uuid":"11111111-2222-3333-4444-555555555555"}],"defaultMsg":"VM deleted","operationType":"Delete","recordType":"Audit","severity":"Audit","userName":"budi.santoso@sandbox.local","userUuid":"user-uuid-0002","uuid":"event-uuid-0002"}

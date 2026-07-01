@@ -1,10 +1,10 @@
 apiVersion: 1
 
 # ---------------------------------------------------------------------------
-# Nutanix SOC Sandbox : Provisioning Datasource Grafana
+# Nutanix SOC Sandbox: Grafana Datasource Provisioning
 # ---------------------------------------------------------------------------
-# Datasource ini menunjuk ke OpenSearch sandbox (satu node) yang menyimpan
-# index nutanix_network_*. Kredensial di bawah hanya untuk sandbox lokal.
+# This datasource points to the sandbox OpenSearch (single node) that stores
+# the nutanix_network_* index. The credentials below are for local sandbox use only.
 # ---------------------------------------------------------------------------
 
 datasources:
@@ -24,5 +24,5 @@ datasources:
       tlsSkipVerify: true
       maxConcurrentShardRequests: 5
     secureJsonData:
-      basicAuthPassword: "SandboxAdmin123!"   # hanya untuk sandbox, ganti pada produksi
+      basicAuthPassword: "SandboxAdmin123!"   # sandbox only, change in production
     editable: true

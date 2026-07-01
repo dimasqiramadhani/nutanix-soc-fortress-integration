@@ -1,19 +1,19 @@
-# Arsitektur Nutanix SOC Sandbox
+# Nutanix SOC Sandbox Architecture
 
-## Alur Data Ujung ke Ujung
+## End to End Data Flow
 
-Diagram berikut menggambarkan perjalanan data mulai dari pembangkit log hingga tervisualisasi pada Grafana.
+The following diagram illustrates the journey of data from the log generator through to visualization in Grafana.
 
 ```mermaid
 flowchart TD
-    subgraph SRC["Sumber Log"]
-        GEN["Sample Log Generator<br/>(pengganti CVM/PCVM Nutanix)<br/>menghasilkan sandbox_nutanix_logs.csv"]
+    subgraph SRC["Log Source"]
+        GEN["Sample Log Generator<br/>(replaces Nutanix CVM/PCVM)<br/>produces sandbox_nutanix_logs.csv"]
     end
 
     GEN -->|"feed_logs.py<br/>syslog TCP :5141"| GL
 
     subgraph GL["Graylog"]
-        IN["Input Syslog TCP 5141"]
+        IN["Syslog TCP Input 5141"]
         STR["Stream<br/>Nutanix Network Logs"]
         subgraph PCP["Pipeline: Prism Central Parser"]
             PCP0["Stage 0<br/>Parse api_audit, flow, JSON<br/>Flag API Error"]
@@ -31,38 +31,38 @@ flowchart TD
     PCP1 -->|"index nutanix_network_*"| OS
     OSP1 -->|"index nutanix_network_*"| OS
 
-    subgraph STORE["Penyimpanan"]
-        OS["OpenSearch<br/>(Wazuh Indexer pada lingkungan nyata)"]
+    subgraph STORE["Storage"]
+        OS["OpenSearch<br/>(Wazuh Indexer in a real environment)"]
     end
 
-    OS -->|"datasource OpenSearch, PPL aktif"| GRF
+    OS -->|"OpenSearch datasource, PPL enabled"| GRF
 
-    subgraph VIZ["Visualisasi"]
-        GRF["Grafana<br/>Dashboard Nutanix Network Logs Monitoring<br/>Panel: timeline, user activity, top endpoints,<br/>external vs ui, http methods, api errors"]
+    subgraph VIZ["Visualization"]
+        GRF["Grafana<br/>Nutanix Network Logs Monitoring Dashboard<br/>Panels: timeline, user activity, top endpoints,<br/>external vs ui, http methods, api errors"]
     end
 ```
 
-## Keputusan Desain
+## Design Decisions
 
-### Alasan Graylog Ditempatkan di Tengah, Bukan Langsung ke Wazuh Manager
+### Why Graylog Is Placed in the Middle Instead of Feeding Directly to Wazuh Manager
 
-Kasus penggunaan utama adalah visibilitas akses, yaitu menjawab pertanyaan mengenai siapa yang masuk atau mengakses Nutanix, dan bukan korelasi MITRE per peristiwa. Graylog menangani proses ingest, normalisasi, dan penyaringan, kemudian menulis hasilnya ke OpenSearch. Grafana kemudian membaca langsung dari OpenSearch untuk keperluan visualisasi. Alur ini lebih ringan dibandingkan memaksa seluruh data melewati Wazuh Manager.
+The primary use case is access visibility, namely answering the question of who logs in to or accesses Nutanix, rather than per event MITRE correlation. Graylog handles the ingest, normalization, and filtering process, then writes the results to OpenSearch. Grafana then reads directly from OpenSearch for visualization. This flow is lighter than forcing all data through Wazuh Manager.
 
-### Alasan Penggunaan Dua Pipeline Terpisah
+### Why Two Separate Pipelines Are Used
 
-Pipeline **Prism Central Parser** menangani `api_audit`, `flow_service`, dan `consolidated_audit` (JSON). Adapun pipeline **OS Audit Parser** menangani `audispd`, yakni auditd internal CVM yang struktur lognya berbeda sama sekali karena menggunakan kunci seperti `type=`, `acct=`, dan `exe=`. Pemisahan ini menjaga aturan tetap rapi dan mudah dipelihara.
+The **Prism Central Parser** pipeline handles `api_audit`, `flow_service`, and `consolidated_audit` (JSON). The **OS Audit Parser** pipeline handles `audispd`, namely the CVM internal auditd whose log structure is entirely different because it uses keys such as `type=`, `acct=`, and `exe=`. This separation keeps the rules clean and easy to maintain.
 
-Kedua pipeline terhubung ke stream yang sama, yaitu `Nutanix Network Logs`, dan berjalan secara paralel.
+Both pipelines connect to the same stream, namely `Nutanix Network Logs`, and run in parallel.
 
-### Alasan Field Tidak Menggunakan `.keyword`
+### Why Fields Do Not Use `.keyword`
 
-Field yang dibuat melalui `set_field()` pada pipeline tersimpan sebagai teks biasa di OpenSearch. Tidak ada pemetaan otomatis menuju subfield keyword. Oleh karena itu, ketentuan pengelompokan pada Grafana adalah sebagai berikut.
+Fields created through `set_field()` in the pipeline are stored as plain text in OpenSearch. There is no automatic mapping to a keyword subfield. Therefore, the grouping rules in Grafana are as follows.
 
-Konfigurasi yang benar menggunakan Group By Terms pada field `nutanix_client_type`. Sebaliknya, konfigurasi yang keliru menggunakan `nutanix_client_type.keyword` yang tidak tersedia sehingga agregasi gagal atau menghasilkan keluaran yang tidak sesuai.
+The correct configuration uses Group By Terms on the `nutanix_client_type` field. Conversely, the incorrect configuration uses `nutanix_client_type.keyword` which is unavailable and therefore causes aggregation to fail or to produce unexpected output.
 
-Hal ini merupakan penyebab umum panel pie atau bar pada Grafana tampak kosong atau hanya menampilkan satu irisan bernilai penuh.
+This is a common cause of pie or bar panels in Grafana appearing empty or showing only a single full slice.
 
-## Format Log yang Direplikasi
+## Replicated Log Formats
 
 ### api_audit (key-value)
 

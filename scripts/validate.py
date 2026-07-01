@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox : Validasi dan Uji Mandiri
-==============================================
-Skrip ini memeriksa konsistensi dan validitas seluruh komponen proyek, yaitu:
-  sintaks JSON dan YAML
-  konsistensi antara aturan dan referensi pipeline
-  kecocokan regex .grok dengan format data contoh
-  kesesuaian field yang dihasilkan simulator dengan yang dijanjikan dokumentasi
-  keterbacaan JSON pada consolidated_audit
+Nutanix SOC Sandbox: Validation and Self Test
+=============================================
+This script checks the consistency and validity of all project components,
+namely:
+  JSON and YAML syntax
+  consistency between rules and pipeline references
+  matching of the .grok regex against the sample data format
+  alignment of fields produced by the simulator with those promised in the docs
+  readability of the JSON in consolidated_audit
 
-Kode keluaran 0 berarti seluruh pemeriksaan lolos, sedangkan 1 berarti ada
-pemeriksaan yang gagal.
+An exit code of 0 means all checks passed, while 1 means a check failed.
 
-Contoh penggunaan:
-  python3 validate.py           # dijalankan dari folder scripts
-  python3 scripts/validate.py   # dijalankan dari akar proyek
+Example usage:
+  python3 validate.py           # run from the scripts folder
+  python3 scripts/validate.py   # run from the project root
 """
 
 import json
@@ -23,7 +23,7 @@ import re
 import sys
 import csv
 
-# ---- Lokasi root project (naik satu level kalau dijalankan dari scripts/) ----
+# ---- Project root location (go up one level when run from scripts/) ----
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = HERE if os.path.basename(HERE) != "scripts" else os.path.dirname(HERE)
 
@@ -53,7 +53,7 @@ def section(t):
 
 
 # ---------------------------------------------------------------------------
-section("1. Validitas JSON")
+section("1. JSON Validity")
 for jf in [
     "grafana/dashboards/nutanix-monitoring-dashboard.json",
     "graylog/inputs/nutanix-syslog-tcp-input.json",
@@ -66,7 +66,7 @@ for jf in [
         check(jf, False, str(e))
 
 # ---------------------------------------------------------------------------
-section("2. Validitas YAML")
+section("2. YAML Validity")
 try:
     import yaml
     for yf in ["docker-compose.yml", "grafana/datasources/nutanix-datasource.yaml"]:
@@ -76,10 +76,10 @@ try:
         except Exception as e:
             check(yf, False, str(e))
 except ImportError:
-    print("  [SKIP] pyyaml tidak terinstall (opsional)")
+    print("  [SKIP] pyyaml is not installed (optional)")
 
 # ---------------------------------------------------------------------------
-section("3. Konsistensi rule <-> pipeline")
+section("3. Rule to Pipeline Consistency")
 rule_titles = set()
 for rf in os.listdir(p("graylog/rules")):
     src = open(p("graylog/rules", rf)).read()
@@ -93,15 +93,15 @@ for pf in os.listdir(p("graylog/pipelines")):
     for m in re.finditer(r'rule\s+"([^"]+)"', src):
         referenced.add(m.group(1))
 
-check("Semua rule yang direferensikan pipeline punya definisi",
+check("All rules referenced by pipelines have a definition",
       referenced.issubset(rule_titles),
       f"missing: {referenced - rule_titles}")
-check("Tidak ada rule yatim (didefinisikan tapi tak dipakai)",
+check("No orphan rules (defined but unused)",
       rule_titles == referenced,
       f"unused: {rule_titles - referenced}")
 
 # ---------------------------------------------------------------------------
-section("4. Datasource uid cocok dengan referensi dashboard")
+section("4. Datasource uid Matches the Dashboard Reference")
 ds_uid = None
 for line in open(p("grafana/datasources/nutanix-datasource.yaml")):
     m = re.search(r"uid:\s*(\S+)", line)
@@ -120,11 +120,11 @@ def walk(o):
         for v in o:
             walk(v)
 walk(dash)
-check(f"datasource uid '{ds_uid}' direferensikan dashboard",
+check(f"datasource uid '{ds_uid}' is referenced by the dashboard",
       ds_uid in dash_uids, f"dashboard refer: {dash_uids}")
 
 # ---------------------------------------------------------------------------
-section("5. Regex .grok match sample data")
+section("5. Regex .grok Matches the Sample Data")
 csv_path = p("sample-data/sandbox_nutanix_logs.csv")
 samples = {"api": None, "flow": None, "cvm": None, "consolidated": None, "error": None}
 with open(csv_path) as f:
@@ -156,25 +156,25 @@ if samples["api"]:
     }.items():
         check(f"api_audit regex {field}", re.match(pat, samples["api"]) is not None)
 else:
-    check("ada sample api_audit", False)
+    check("an api_audit sample exists", False)
 
 # error regex
 if samples["error"]:
     check("responseCode regex", re.search(r".*responseCode=([0-9]+).*", samples["error"]) is not None)
 else:
-    check("ada sample error (responseCode!=200)", False, "tidak ada di data (jarang - regenerate lebih banyak)")
+    check("an error sample exists (responseCode!=200)", False, "not present in the data (rare, regenerate more)")
 
 # flow
 if samples["flow"]:
     check("flow_service level regex", re.search(r".*Z\s+([A-Z]+)\s+.*", samples["flow"]) is not None)
 else:
-    check("ada sample flow_service", False)
+    check("a flow_service sample exists", False)
 
 # cvm
 if samples["cvm"]:
     check("cvm audit type regex", re.search(r".*type=([^ ]+).*", samples["cvm"]) is not None)
 else:
-    check("ada sample cvm_audit", False)
+    check("a cvm_audit sample exists", False)
 
 # consolidated
 if samples["consolidated"]:
@@ -186,12 +186,12 @@ if samples["consolidated"]:
             ok = True
         except Exception:
             ok = False
-    check("consolidated_audit JSON parseable", ok)
+    check("consolidated_audit JSON is parseable", ok)
 else:
-    check("ada sample consolidated_audit", False, "generator belum bikin - cek weights")
+    check("a consolidated_audit sample exists", False, "the generator has not created any, check the weights")
 
 # ---------------------------------------------------------------------------
-section("6. Tidak ada sisa kata 'lab'")
+section("6. No Leftover Word 'lab'")
 leftover = []
 SELF = os.path.abspath(__file__)
 for dirpath, _, files in os.walk(ROOT):
@@ -200,28 +200,28 @@ for dirpath, _, files in os.walk(ROOT):
     for fn in files:
         fp = os.path.join(dirpath, fn)
         if os.path.abspath(fp) == SELF:
-            continue  # skip validator sendiri (mengandung kata 'lab' di pesan cek)
+            continue  # skip the validator itself (it contains the word 'lab' in its check messages)
         try:
             txt = open(fp, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        # cari 'lab' sebagai substring, kecuali dalam kata umum yang sah
+        # look for 'lab' as a substring, except within legitimate common words
         for m in re.finditer(r"lab", txt, re.IGNORECASE):
             ctx = txt[max(0, m.start()-6):m.start()+6].lower()
-            # kata sah yang mengandung "lab": sandbox, global, available,
-            # syllabus, label/berlabel, kolaborasi, elaborasi, laboratorium
+            # legitimate words containing "lab": sandbox, global, available,
+            # syllabus, label, collaboration, elaboration, laboratory
             if any(w in ctx for w in ["sandbox", "global", "availab", "syllab",
                                        "label", "kolab", "elab", "laborat"]):
                 continue
             snippet = txt[max(0, m.start()-12):m.start()+12].replace("\n", " ")
             leftover.append(f"{os.path.relpath(fp, ROOT)}: ...{snippet}...")
             break
-check("tidak ada sisa kata 'lab'", len(leftover) == 0,
+check("no leftover word 'lab'", len(leftover) == 0,
       "; ".join(leftover[:3]))
 
 # ---------------------------------------------------------------------------
-section("7. Konsistensi dokumentasi (field di docs ada di rule)")
-# Ambil field nutanix_* yang di-set oleh rule .grok
+section("7. Documentation Consistency (fields in docs exist in rules)")
+# Collect nutanix_* fields set by the .grok rules
 produced = set()
 for rf in os.listdir(p("graylog/rules")):
     src = open(p("graylog/rules", rf)).read()
@@ -230,7 +230,7 @@ for rf in os.listdir(p("graylog/rules")):
     for m in re.finditer(r'set_field\("(ntnx_[a-z_]+)"', src):
         produced.add(m.group(1))
 
-# Ambil field yang disebut di FIELD-REFERENCE.md (dalam backtick `nutanix_...`)
+# Collect fields mentioned in FIELD-REFERENCE.md (inside backticks `nutanix_...`)
 documented = set()
 fr = open(p("docs/FIELD-REFERENCE.md")).read()
 for m in re.finditer(r"`(nutanix_[a-z_]+)`", fr):
@@ -238,21 +238,21 @@ for m in re.finditer(r"`(nutanix_[a-z_]+)`", fr):
 for m in re.finditer(r"`(ntnx_[a-z_]+)`", fr):
     documented.add(m.group(1))
 
-# Setiap field terdokumentasi harus benar-benar diproduksi rule
+# Every documented field must actually be produced by a rule
 missing_in_code = documented - produced
-check("Semua field di FIELD-REFERENCE.md diproduksi oleh rule",
+check("All fields in FIELD-REFERENCE.md are produced by a rule",
       len(missing_in_code) == 0,
-      f"didokumentasikan tapi tak ada di rule: {sorted(missing_in_code)}")
+      f"documented but not present in any rule: {sorted(missing_in_code)}")
 
-# Setiap field yang diproduksi sebaiknya terdokumentasi (warning, bukan fatal)
+# Every produced field should ideally be documented (a warning, not fatal)
 undoc = produced - documented
-check("Semua field yang diproduksi terdokumentasi",
+check("All produced fields are documented",
       len(undoc) == 0,
-      f"ada di rule tapi tak terdokumentasi: {sorted(undoc)}")
+      f"present in a rule but undocumented: {sorted(undoc)}")
 
 # ---------------------------------------------------------------------------
-section("8. Semua tipe log ter-cover simulator")
-# Pastikan generator menghasilkan keempat tipe & simulator memparse semua
+section("8. All Log Types Covered by the Simulator")
+# Ensure the generator produces all four types and the simulator parses them all
 try:
     sys.path.insert(0, p("scripts"))
     import importlib.util
@@ -270,14 +270,14 @@ try:
             out = simpipe.process(row[2])
             seen_types.add(out.get("nutanix_log_type", "unparsed"))
     expected = {"api_audit", "cvm_audit", "flow_service", "audit"}
-    check("Keempat tipe log ter-parse (tidak ada 'unparsed')",
+    check("All four log types are parsed (no 'unparsed')",
           "unparsed" not in seen_types and expected.issubset(seen_types),
-          f"terlihat: {sorted(seen_types)}")
+          f"observed: {sorted(seen_types)}")
 except Exception as e:
-    check("simulator dapat di-import & jalan", False, str(e))
+    check("the simulator can be imported and run", False, str(e))
 
 # ---------------------------------------------------------------------------
-section("9. Field dashboard diproduksi oleh rule")
+section("9. Dashboard Fields Are Produced by Rules")
 dash2 = json.load(open(p("grafana/dashboards/nutanix-monitoring-dashboard.json")))
 dash_fields = set()
 def walk2(o):
@@ -294,18 +294,18 @@ def walk2(o):
             walk2(v)
 walk2(dash2)
 dash_nutanix = {f for f in dash_fields if f.startswith(("nutanix_", "ntnx_"))}
-check("Semua field nutanix_* di dashboard diproduksi rule",
+check("All nutanix_* fields in the dashboard are produced by rules",
       dash_nutanix.issubset(produced),
-      f"tidak diproduksi: {sorted(dash_nutanix - produced)}")
-check("Dashboard TIDAK memakai .keyword (pelajaran penting)",
+      f"not produced: {sorted(dash_nutanix - produced)}")
+check("The dashboard does NOT use .keyword (an important lesson)",
       not any(".keyword" in f for f in dash_fields),
-      f"pakai keyword: {[f for f in dash_fields if '.keyword' in f]}")
+      f"uses keyword: {[f for f in dash_fields if '.keyword' in f]}")
 
 # ---------------------------------------------------------------------------
-section("10. Integritas CSV sample data")
+section("10. Sample Data CSV Integrity")
 with open(csv_path) as f:
     header = f.readline().strip()
-check("Header CSV = timestamp;source;message",
+check("CSV header = timestamp;source;message",
       header == "timestamp;source;message", f"header: {header}")
 bad = 0
 total = 0
@@ -317,10 +317,10 @@ with open(csv_path) as f:
         total += 1
         if line.count(";") < 2:
             bad += 1
-check(f"Semua {total} baris punya >=2 delimiter ';'", bad == 0, f"{bad} baris rusak")
+check(f"All {total} lines have >=2 ';' delimiters", bad == 0, f"{bad} broken lines")
 
 # ---------------------------------------------------------------------------
-section("11. Diagram Mermaid valid")
+section("11. Mermaid Diagram Validity")
 for md in ["README.md", "docs/ARCHITECTURE.md"]:
     txt = open(p(md)).read()
     blocks = re.findall(r"```mermaid\n(.*?)```", txt, re.DOTALL)
@@ -333,12 +333,12 @@ for md in ["README.md", "docs/ARCHITECTURE.md"]:
         n_sub = sum(1 for l in lines if l.strip().startswith("subgraph"))
         n_end = sum(1 for l in lines if l.strip() == "end")
         has_arrow = any("-->" in l for l in lines)
-        check(f"{md} mermaid #{i+1}: deklarasi & balance & arrow",
+        check(f"{md} mermaid #{i+1}: declaration, balance, and arrow",
               valid_start and n_sub == n_end and has_arrow,
               f"start={valid_start}, subgraph={n_sub}/end={n_end}, arrow={has_arrow}")
 
 # ---------------------------------------------------------------------------
-section("12. Tidak ada em dash atau en dash")
+section("12. No Em Dash or En Dash")
 dash_files = []
 for dirpath, _, files in os.walk(ROOT):
     if "__pycache__" in dirpath:
@@ -351,15 +351,15 @@ for dirpath, _, files in os.walk(ROOT):
             continue
         if "\u2014" in txt or "\u2013" in txt:  # em dash / en dash
             dash_files.append(os.path.relpath(fp, ROOT))
-check("Tidak ada karakter em dash atau en dash", len(dash_files) == 0,
-      f"ditemukan di: {dash_files}")
+check("No em dash or en dash characters", len(dash_files) == 0,
+      f"found in: {dash_files}")
 
 # ---------------------------------------------------------------------------
-section("HASIL")
+section("RESULT")
 print(f"  PASS: {PASS}   FAIL: {FAIL}")
 if FAIL == 0:
-    print("\n  [SUCCESS] Semua validasi lolos.")
+    print("\n  [SUCCESS] All validations passed.")
     sys.exit(0)
 else:
-    print(f"\n  [ATTENTION] {FAIL} pemeriksaan gagal - lihat di atas.")
+    print(f"\n  [ATTENTION] {FAIL} checks failed, see above.")
     sys.exit(1)

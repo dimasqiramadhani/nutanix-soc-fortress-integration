@@ -1,55 +1,55 @@
-# Aturan Deteksi Nutanix SOC Sandbox
+# Nutanix SOC Sandbox Detection Rules
 
-Dokumen ini memetakan setiap aturan pipeline terhadap kasus penggunaan keamanan yang ditanganinya.
+This document maps each pipeline rule to the security use case it addresses.
 
-## Ringkasan Pipeline
+## Pipeline Summary
 
-| Pipeline | Stage | Aturan | Fungsi |
-|----------|-------|--------|--------|
-| Prism Central Parser | 0 | Parse API Audit | mengekstrak field dari api_audit (key-value) |
-| Prism Central Parser | 0 | Parse Flow Service Logs | menandai dan mengekstrak peristiwa flow atau IDF |
-| Prism Central Parser | 0 | Parse Audit JSON | mengekstrak field dari consolidated_audit (JSON) |
-| Prism Central Parser | 0 | Flag API Error Response | menandai responseCode selain 200 |
-| Prism Central Parser | 1 | Flag External Access | menandai akses berclientType External |
-| Prism Central Parser | 1 | Flag Critical Operations | menandai operasi tulis (POST/PUT/DELETE atau Create/Update/Delete) |
-| OS Audit Parser | 0 | CVM Drop Broken | membuang pesan rusak berupa huruf "o" akibat ketidaksesuaian RELP |
-| OS Audit Parser | 1 | CVM Extract Fields | mengekstrak field auditd internal CVM |
+| Pipeline | Stage | Rule | Function |
+|----------|-------|------|----------|
+| Prism Central Parser | 0 | Parse API Audit | extracts fields from api_audit (key-value) |
+| Prism Central Parser | 0 | Parse Flow Service Logs | flags and extracts flow or IDF events |
+| Prism Central Parser | 0 | Parse Audit JSON | extracts fields from consolidated_audit (JSON) |
+| Prism Central Parser | 0 | Flag API Error Response | flags responseCode other than 200 |
+| Prism Central Parser | 1 | Flag External Access | flags access with clientType External |
+| Prism Central Parser | 1 | Flag Critical Operations | flags write operations (POST/PUT/DELETE or Create/Update/Delete) |
+| OS Audit Parser | 0 | CVM Drop Broken | discards broken messages of the letter "o" caused by RELP mismatch |
+| OS Audit Parser | 1 | CVM Extract Fields | extracts CVM internal auditd fields |
 
-## Kasus Penggunaan per Aturan
+## Use Cases Per Rule
 
 ### Parse API Audit
 
-Aturan ini menjawab pertanyaan mengenai siapa yang mengakses Nutanix, melalui apa, dan menuju sumber daya mana. Aturan menghasilkan field `nutanix_user`, `nutanix_client_type`, `nutanix_http_method`, `nutanix_endpoint`, dan `nutanix_entity_uuid`. Field tersebut menjadi fondasi visibilitas akses.
+This rule answers the question of who accesses Nutanix, through what, and toward which resource. The rule produces the fields `nutanix_user`, `nutanix_client_type`, `nutanix_http_method`, `nutanix_endpoint`, and `nutanix_entity_uuid`. These fields form the foundation of access visibility.
 
 ### Flag External Access
 
-Aturan ini menjawab pertanyaan mengenai akses mana yang berasal dari luar dan bukan dari antarmuka internal. Aturan menandai `nutanix_external_access` bernilai true untuk clientType External. Penandaan ini bermanfaat untuk memisahkan lalu lintas layanan atau API dari login manusia melalui antarmuka.
+This rule answers the question of which access originates from outside rather than from the internal interface. The rule flags `nutanix_external_access` as true for clientType External. This flagging helps separate service or API traffic from human logins through the interface.
 
 ### Flag Critical Operations
 
-Aturan ini menjawab pertanyaan mengenai ada tidaknya operasi yang mengubah data, bukan sekadar membaca. Method GET tergolong operasi baca yang aman. Adapun POST, PUT, DELETE, maupun operationType Create, Update, dan Delete tergolong perubahan sehingga ditandai dengan `nutanix_critical_operation` bernilai true. Operasi semacam ini berprioritas tinggi untuk ditinjau.
+This rule answers the question of whether an operation modifies data rather than merely reading it. The GET method is a safe read operation. Meanwhile POST, PUT, DELETE, as well as the operationType values Create, Update, and Delete are considered changes and are therefore flagged with `nutanix_critical_operation` as true. Such operations are high priority for review.
 
 ### Flag API Error Response
 
-Aturan ini menjawab pertanyaan mengenai ada tidaknya percobaan akses yang gagal atau ditolak. responseCode selain 200 akan menghasilkan `nutanix_api_error` bernilai true beserta `nutanix_response_code`. Sebagai contoh, kode 401 atau 403 yang menandakan unauthorized atau forbidden dapat mengindikasikan aktivitas pemindaian atau kredensial yang bermasalah.
+This rule answers the question of whether there is a failed or denied access attempt. A responseCode other than 200 produces `nutanix_api_error` as true along with `nutanix_response_code`. For example, codes 401 or 403 that indicate unauthorized or forbidden may signal scanning activity or problematic credentials.
 
 ### Parse Audit JSON
 
-Aturan ini menjawab pertanyaan mengenai peristiwa login, logout, dan perubahan entity dari audit terstruktur. Aturan mengurai `consolidated_audit` (JSON) menjadi `nutanix_operation`, `nutanix_entity`, dan `nutanix_message`. Pada banyak penerapan, format ini lebih jarang muncul dibandingkan api_audit sehingga aturan dapat menganggur, dan kondisi tersebut wajar.
+This rule answers the question of login, logout, and entity change events from the structured audit. The rule parses `consolidated_audit` (JSON) into `nutanix_operation`, `nutanix_entity`, and `nutanix_message`. In many deployments this format appears less frequently than api_audit, so the rule may remain idle, and that condition is normal.
 
-### CVM Drop Broken dan CVM Extract Fields
+### CVM Drop Broken and CVM Extract Fields
 
-Kedua aturan ini menjawab pertanyaan mengenai aktivitas OS internal CVM seperti su, sudo, maupun autentikasi. Aturan membuang artefak berupa huruf "o" akibat ketidaksesuaian RELP, kemudian mengekstrak `ntnx_type`, `ntnx_acct`, `ntnx_exe`, dan `ntnx_result`. Tujuannya adalah memantau penggunaan privilese pada tingkat OS CVM yang berbeda dari akses API Prism Central.
+These two rules answer the question of CVM internal OS activity such as su, sudo, and authentication. The rules discard the artifact of the letter "o" caused by RELP mismatch, then extract `ntnx_type`, `ntnx_acct`, `ntnx_exe`, and `ntnx_result`. The goal is to monitor privilege usage at the CVM OS level, which differs from Prism Central API access.
 
-## Gagasan Alerting untuk Pengembangan Lanjutan
+## Alerting Ideas for Further Development
 
-Bagian ini belum diimplementasikan dan disediakan sebagai bahan pengembangan.
+This section is not yet implemented and is provided as development material.
 
-| Alert | Kondisi Graylog | Alasan |
-|-------|-----------------|--------|
-| Lonjakan akses API eksternal | `nutanix_external_access:true` melampaui ambang tertentu | mendeteksi penyalahgunaan atau scraping API |
-| Lonjakan akses gagal | `nutanix_api_error:true` (401 atau 403) berulang | mendeteksi upaya brute force atau pemindaian |
-| Operasi kritis oleh pengguna non-admin | `nutanix_critical_operation:true` dan bukan admin | mendeteksi perubahan yang tidak diharapkan |
-| Login antarmuka oleh pengguna baru | `nutanix_client_type:ui` dengan pengguna di luar daftar dikenal | mendeteksi akun baru atau tidak dikenal |
+| Alert | Graylog Condition | Rationale |
+|-------|-------------------|-----------|
+| External API access spike | `nutanix_external_access:true` exceeds a certain threshold | detects API abuse or scraping |
+| Failed access spike | `nutanix_api_error:true` (401 or 403) repeated | detects brute force or scanning attempts |
+| Critical operation by a non admin user | `nutanix_critical_operation:true` and not admin | detects unexpected changes |
+| Interface login by a new user | `nutanix_client_type:ui` with a user outside the known list | detects new or unknown accounts |
 
-Implementasi alert dapat dilakukan melalui Graylog Alerts and Events beserta Notification, misalnya webhook menuju SOAR atau Shuffle, maupun melalui Grafana Alerting pada datasource NUTANIX.
+Alert implementation can be done through Graylog Alerts and Events together with Notification, for example a webhook to SOAR or Shuffle, or through Grafana Alerting on the NUTANIX datasource.

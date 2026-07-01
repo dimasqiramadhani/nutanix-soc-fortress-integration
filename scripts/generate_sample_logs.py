@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox : Pembangkit Log Contoh
-===========================================
-Skrip ini menghasilkan log Nutanix Prism Central sintetis dan fiktif untuk
-keperluan sandbox. Seluruh hostname, pengguna, UUID, dan alamat IP di dalamnya
-bersifat contoh untuk pembelajaran dan demonstrasi. Tidak ada data produksi
-maupun data nyata di dalamnya.
+Nutanix SOC Sandbox: Sample Log Generator
+=========================================
+This script generates synthetic and fictional Nutanix Prism Central logs for
+sandbox purposes. All hostnames, users, UUIDs, and IP addresses within it are
+examples for learning and demonstration. No production or real data is
+included.
 
-Format yang dihasilkan meniru struktur log asli Prism Central, yaitu:
+The generated formats mirror the real Prism Central log structure, namely:
   api_audit          (key-value)
-  cvm_audit          (auditd atau audispd)
+  cvm_audit          (auditd or audispd)
   flow_service       (microsegmentation)
   consolidated_audit (JSON)
 
-Contoh penggunaan:
+Example usage:
   python3 generate_sample_logs.py --count 2000 --out ../sample-data/sandbox_nutanix_logs.csv
 """
 
@@ -23,7 +23,7 @@ import uuid
 from datetime import datetime, timedelta
 
 # ---------------------------------------------------------------------------
-# DUMMY INVENTORY (semua fiktif untuk sandbox)
+# SAMPLE INVENTORY (all fictional for the sandbox)
 # ---------------------------------------------------------------------------
 PCVM = "NTNX-10-0-0-45-A-PCVM"          # Prism Central VM (sandbox)
 CVMS = [
@@ -33,7 +33,7 @@ CVMS = [
     "NTNX-SANDBOX0000002-B-CVM",
 ]
 
-# User fiktif: campuran human UI user, admin, service account, backup account
+# Fictional users: a mix of human UI users, admin, service accounts, and a backup account
 HUMAN_USERS = ["andi.pratama", "budi.santoso", "citra.dewi"]
 SERVICE_UUIDS = [
     "0000aaaa-1111-2222-3333-444455556666",
@@ -84,7 +84,7 @@ def ts_inner(dt):
 
 
 def make_api_audit(dt):
-    """Generate satu baris api_audit key-value."""
+    """Generate a single api_audit key-value line."""
     host = random.choice(CVMS + [PCVM])
 
     # Pilih profil user
@@ -118,7 +118,7 @@ def make_api_audit(dt):
     api_ver = random.choice(["1.0", "2.0", "0.8"])
     entity = SANDBOX_VM_UUID if "vms" in endpoint else ""
 
-    # Sesekali suntik response error (untuk melatih rule Flag API Error)
+    # Occasionally inject a response error (to exercise the Flag API Error rule)
     resp = ""
     if random.random() < 0.03:
         code = random.choice(["401", "403", "404", "500"])
@@ -134,7 +134,7 @@ def make_api_audit(dt):
 
 
 def make_cvm_audit(dt):
-    """Generate satu baris cvm audit (audispd) - internal OS."""
+    """Generate a single cvm audit (audispd) line, which is OS internal."""
     host = random.choice(CVMS)
     node = host.lower()
     session = random.randint(10000000, 99999999)
@@ -172,7 +172,7 @@ def make_flow_service(dt):
     return host, msg
 
 
-# consolidated_audit (JSON) - untuk menguji rule Parse Audit JSON
+# consolidated_audit (JSON), used to test the Parse Audit JSON rule
 AUDIT_OPS = [
     ("Login", "User logged in to Prism Central", "cluster", "SANDBOX-CLUSTER"),
     ("Logout", "User logged out from Prism Central", "cluster", "SANDBOX-CLUSTER"),
@@ -212,8 +212,8 @@ def main():
 
     random.seed(args.seed)
 
-    # Distribusi mirip data nyata: api_audit dominan, cvm audit banyak,
-    # flow & consolidated_audit sedikit
+    # Distribution similar to real data: api_audit dominant, cvm audit frequent,
+    # with flow and consolidated_audit being few
     weights = [("api", 0.55), ("cvm", 0.38), ("flow", 0.03), ("consolidated", 0.04)]
 
     start = datetime.now() - timedelta(hours=6)
@@ -239,7 +239,7 @@ def main():
         else:
             host, msg = make_consolidated_audit(dt)
 
-        # baris CSV: timestamp;source;message (semicolon delimited, meniru export Graylog)
+        # CSV line: timestamp;source;message (semicolon delimited, mirroring a Graylog export)
         full = f"{host} {msg}" if not msg.startswith(host) else msg
         rows.append(f"{ts_iso(dt)};{host};{full}")
 
@@ -247,7 +247,7 @@ def main():
         f.write("timestamp;source;message\n")
         f.write("\n".join(rows) + "\n")
 
-    print(f"[+] {len(rows)} baris log sandbox ditulis ke {args.out}")
+    print(f"[+] {len(rows)} sandbox log lines written to {args.out}")
 
 
 if __name__ == "__main__":

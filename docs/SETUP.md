@@ -1,54 +1,54 @@
-# Panduan Pemasangan Nutanix SOC Sandbox
+# Nutanix SOC Sandbox Setup Guide
 
-Tersedia dua jalur pemasangan, yaitu pemeriksaan cepat secara luring dan tumpukan penuh menggunakan Docker.
+Two setup paths are available, namely a quick offline check and a full stack using Docker.
 
-## Validasi Cepat Sebelum Memulai
+## Quick Validation Before Starting
 
 ```bash
 python3 scripts/validate.py
 ```
 
-Perintah tersebut memastikan seluruh berkas JSON dan YAML valid, aturan dan pipeline konsisten, serta regex cocok dengan data contoh. Kode keluaran nol menandakan proyek siap digunakan.
+This command ensures that all JSON and YAML files are valid, that rules and pipelines are consistent, and that the regex matches the sample data. An exit code of zero indicates that the project is ready to use.
 
-## Jalur 1: Luring (Paling Cepat)
+## Path 1: Offline (Fastest)
 
-Jalur ini hanya membutuhkan Python 3.
+This path requires only Python 3.
 
 ```bash
 cd scripts
 python3 simulate_pipeline.py --file ../sample-data/sandbox_nutanix_logs.csv
 ```
 
-Perintah tersebut menerapkan logika seluruh aturan terhadap data contoh dan menampilkan ringkasannya. Jalur ini cocok untuk memahami keluaran pipeline tanpa menjalankan komponen apa pun.
+This command applies the logic of all rules to the sample data and displays a summary. This path is suitable for understanding the pipeline output without running any components.
 
-## Jalur 2: Tumpukan Penuh (Docker)
+## Path 2: Full Stack (Docker)
 
-### Prasyarat
+### Prerequisites
 
-Jalur ini membutuhkan Docker beserta Docker Compose, RAM minimal sekitar 4 GB, serta ketersediaan port 9000 untuk Graylog, 3000 untuk Grafana, 9200 untuk OpenSearch, dan 5141 untuk syslog.
+This path requires Docker with Docker Compose, a minimum of approximately 4 GB of RAM, and the availability of port 9000 for Graylog, 3000 for Grafana, 9200 for OpenSearch, and 5141 for syslog.
 
-### 1. Menjalankan Tumpukan
+### 1. Start the Stack
 
 ```bash
 docker compose up -d
-docker compose ps        # memastikan seluruh layanan running atau healthy
+docker compose ps        # ensure all services are running or healthy
 ```
 
-Tunggu sekitar 1 hingga 2 menit sampai Graylog siap pada http://localhost:9000 dengan kredensial admin dan admin.
+Wait approximately 1 to 2 minutes until Graylog is ready at http://localhost:9000 with the credentials admin and admin.
 
-### 2. Membuat Input Syslog TCP
+### 2. Create the Syslog TCP Input
 
-Pada antarmuka Graylog, buka System, lalu Inputs, lalu pilih Syslog TCP, kemudian Launch new input. Isi sesuai `graylog/inputs/nutanix-syslog-tcp-input.json` dengan Bind 0.0.0.0, Port 5141, opsi Store full message aktif, serta static field `syslog_type=network` dan `syslog_customer=sandbox`.
+In the Graylog interface, open System, then Inputs, then select Syslog TCP, then Launch new input. Fill it according to `graylog/inputs/nutanix-syslog-tcp-input.json` with Bind 0.0.0.0, Port 5141, the Store full message option enabled, and the static fields `syslog_type=network` and `syslog_customer=sandbox`.
 
-### 3. Membuat Stream
+### 3. Create the Stream
 
-Buka Streams, lalu Create Stream, dengan nama Nutanix Network Logs. Tambahkan aturan stream `syslog_type` bernilai `network`. Aktifkan opsi Remove matches from Default Stream, kemudian jalankan stream.
+Open Streams, then Create Stream, with the name Nutanix Network Logs. Add the stream rule `syslog_type` with the value `network`. Enable the Remove matches from Default Stream option, then start the stream.
 
-### 4. Mengimpor Aturan dan Pipeline
+### 4. Import Rules and Pipelines
 
-**Opsi cepat (Content Pack):** buka System, lalu Content Packs, lalu Upload, kemudian pilih `graylog/content-pack/nutanix-soc-content-pack.json`, lalu Install. Seluruh 8 aturan dan 2 pipeline langsung terpasang. Lanjutkan ke langkah 5 untuk menghubungkan ke stream dan lewati langkah manual di bawah.
+**Quick option (Content Pack):** open System, then Content Packs, then Upload, then select `graylog/content-pack/nutanix-soc-content-pack.json`, then Install. All 8 rules and 2 pipelines are installed immediately. Continue to step 5 to connect to the stream and skip the manual steps below.
 
-**Opsi manual untuk mengimpor aturan:** buka System, lalu Pipelines, lalu Manage rules, lalu Create Rule dengan Use Source Code Editor. Salin dan tempel isi tiap berkas berikut satu per satu.
+**Manual option to import rules:** open System, then Pipelines, then Manage rules, then Create Rule with Use Source Code Editor. Copy and paste the contents of each file below one at a time.
 
 ```
 graylog/rules/01-parse-api-audit.grok
@@ -61,28 +61,28 @@ graylog/rules/07-cvm-drop-broken.grok
 graylog/rules/08-cvm-extract-fields.grok
 ```
 
-### 5. Membuat Pipeline
+### 5. Create the Pipelines
 
-Buka Manage pipelines, lalu Add new pipeline.
+Open Manage pipelines, then Add new pipeline.
 
-Pipeline **Nutanix Prism Central Parser** sesuai `graylog/pipelines/nutanix-prism-central-parser.pipeline` memiliki Stage 0 dengan match either yang berisi Parse API Audit, Parse Flow Service Logs, Parse Audit JSON, dan Flag API Error Response, serta Stage 1 dengan match either yang berisi Flag External Access dan Flag Critical Operations.
+The **Nutanix Prism Central Parser** pipeline according to `graylog/pipelines/nutanix-prism-central-parser.pipeline` has Stage 0 with match either containing Parse API Audit, Parse Flow Service Logs, Parse Audit JSON, and Flag API Error Response, and Stage 1 with match either containing Flag External Access and Flag Critical Operations.
 
-Pipeline **Nutanix OS Audit Parser** sesuai `graylog/pipelines/nutanix-os-audit-parser.pipeline` memiliki Stage 0 berisi CVM Drop Broken dan Stage 1 berisi CVM Extract Fields.
+The **Nutanix OS Audit Parser** pipeline according to `graylog/pipelines/nutanix-os-audit-parser.pipeline` has Stage 0 containing CVM Drop Broken and Stage 1 containing CVM Extract Fields.
 
-Hubungkan **kedua pipeline** ke stream Nutanix Network Logs. Pastikan Message Processor bernama Pipeline Processor telah aktif melalui System, lalu Configurations.
+Connect **both pipelines** to the Nutanix Network Logs stream. Ensure that the Message Processor named Pipeline Processor is enabled through System, then Configurations.
 
-### 6. Mengirim Log
+### 6. Send the Logs
 
 ```bash
 cd scripts
 python3 feed_logs.py --host localhost --port 5141 \
     --file ../sample-data/sandbox_nutanix_logs.csv --rate 30
-# untuk aliran langsung, tambahkan --loop
+# for a live stream, add --loop
 ```
 
-### 7. Verifikasi pada Graylog
+### 7. Verify in Graylog
 
-Lakukan pencarian dengan rentang waktu satu jam terakhir menggunakan kueri berikut.
+Perform a search with a time range of the last one hour using the following queries.
 
 ```
 nutanix_user:*
@@ -92,15 +92,15 @@ nutanix_api_error:true
 
 ### 8. Grafana
 
-Buka http://localhost:3000 dengan kredensial admin dan admin. Datasource NUTANIX beserta dashboard Nutanix Network Logs Monitoring telah ter-provisioning secara otomatis melalui folder `grafana/`.
+Open http://localhost:3000 with the credentials admin and admin. The NUTANIX datasource and the Nutanix Network Logs Monitoring dashboard are provisioned automatically through the `grafana/` folder.
 
-Apabila dashboard belum muncul, lakukan impor manual melalui Dashboards, lalu New, lalu Import, kemudian unggah `grafana/dashboards/nutanix-monitoring-dashboard.json`.
+If the dashboard does not appear, import it manually through Dashboards, then New, then Import, then upload `grafana/dashboards/nutanix-monitoring-dashboard.json`.
 
-## Penanganan Masalah
+## Troubleshooting
 
-| Gejala | Kemungkinan Penyebab | Solusi |
-|--------|----------------------|--------|
-| Log masuk sebagai huruf "o" | ketidaksesuaian RELP pada lingkungan nyata | pastikan pengirim menggunakan plain syslog TCP dan bukan RELP |
-| Field `nutanix_*` tidak muncul | pipeline belum terhubung ke stream atau processor tidak aktif | periksa koneksi pipeline dan Message Processors |
-| Panel pie atau bar pada Grafana kosong | menggunakan `.keyword` | ganti dengan field tanpa `.keyword` |
-| OpenSearch gagal dijalankan | keterbatasan memlock atau RAM | pastikan ulimit memlock dan RAM mencukupi |
+| Symptom | Possible Cause | Solution |
+|---------|----------------|----------|
+| Logs arrive as the letter "o" | RELP mismatch in a real environment | ensure the sender uses plain syslog TCP and not RELP |
+| The `nutanix_*` fields do not appear | the pipeline is not connected to the stream or the processor is not enabled | check the pipeline connection and Message Processors |
+| The pie or bar panels in Grafana are empty | using `.keyword` | replace with the field without `.keyword` |
+| OpenSearch fails to start | memlock or RAM limitations | ensure the memlock ulimit and RAM are sufficient |

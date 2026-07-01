@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox : Simulasi Pipeline Luring
-==============================================
-Skrip ini menerapkan logika aturan pipeline versi Python terhadap CSV contoh,
-lalu menampilkan ringkasan field hasil parsing beserta statistiknya, tanpa
-memerlukan Graylog maupun OpenSearch. Skrip berguna untuk memeriksa secara
-cepat bahwa aturan menghasilkan field yang benar sebagai cerminan berkas .grok.
+Nutanix SOC Sandbox: Offline Pipeline Simulation
+================================================
+This script applies the Python version of the pipeline rule logic to the sample
+CSV, then displays a summary of the parsed fields along with their statistics,
+without requiring Graylog or OpenSearch. The script is useful for quickly
+verifying that the rules produce the correct fields as a reflection of the
+.grok files.
 
-Contoh penggunaan:
+Example usage:
   python3 simulate_pipeline.py --file ../sample-data/sandbox_nutanix_logs.csv
 """
 
@@ -96,7 +97,7 @@ def flag_external(out):
 
 
 def flag_critical(out):
-    # method write (api_audit) ATAU operationType write (consolidated_audit)
+    # write method (api_audit) OR write operationType (consolidated_audit)
     if out.get("nutanix_http_method") in ("DELETE", "PUT", "POST"):
         out["nutanix_critical_operation"] = "true"
         out.setdefault("nutanix_alert_type", "critical_operation")
@@ -119,7 +120,7 @@ def process(msg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", default="../sample-data/sandbox_nutanix_logs.csv")
-    ap.add_argument("--show", type=int, default=3, help="berapa contoh per tipe")
+    ap.add_argument("--show", type=int, default=3, help="how many examples per type")
     args = ap.parse_args()
 
     log_types = Counter()
@@ -165,7 +166,7 @@ def main():
     for k, v in client_types.most_common():
         print(f"  {k:15} : {v}")
 
-    section("TOP USERS (siapa akses Nutanix)")
+    section("TOP USERS (who accesses Nutanix)")
     for k, v in users.most_common(10):
         print(f"  {k:45} : {v}")
 
@@ -177,11 +178,11 @@ def main():
     for k, v in endpoints.most_common(10):
         print(f"  {k:55} : {v}")
 
-    section("ALERT TYPES (hasil flag rules)")
+    section("ALERT TYPES (result of the flag rules)")
     for k, v in alerts.most_common():
         print(f"  {k:25} : {v}")
 
-    section(f"CONTOH FIELD PER TIPE (maks {args.show})")
+    section(f"FIELD EXAMPLES PER TYPE (max {args.show})")
     for lt, items in examples.items():
         print(f"\n--- {lt} ---")
         for ex in items[:args.show]:

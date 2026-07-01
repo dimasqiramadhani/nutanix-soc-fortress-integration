@@ -1,18 +1,18 @@
 # Nutanix SOC Sandbox
 
-Integrasi Log Prism Central menuju Graylog, OpenSearch, dan Grafana.
+Prism Central log integration into Graylog, OpenSearch, and Grafana.
 
-Lingkungan sandbox untuk mempelajari dan mendemonstrasikan integrasi log **Nutanix Prism Central** ke dalam tumpukan SIEM (Graylog, OpenSearch, dan Grafana). Proyek ini mencakup pipeline parsing, aturan deteksi, serta dashboard visualisasi.
+A sandbox environment for learning and demonstrating how to integrate **Nutanix Prism Central** logs into a SIEM stack consisting of Graylog, OpenSearch, and Grafana. This project includes parsing pipelines, detection rules, and a visualization dashboard.
 
-> **Catatan penting:** Seluruh data, hostname, username, UUID, dan alamat IP pada sandbox ini bersifat **fiktif** dan dibuat khusus untuk keperluan pembelajaran. Tidak ada data produksi maupun data nyata di dalamnya. Kredensial yang tercantum hanya berlaku untuk sandbox lokal dan tidak boleh digunakan pada lingkungan nyata.
+> **Important note:** All data, hostnames, usernames, UUIDs, and IP addresses in this sandbox are **fictional** and created solely for learning purposes. No production or real data is included. The credentials listed here apply only to a local sandbox and must never be used in a real environment.
 
-## Gambaran Alur yang Disimulasikan
+## Simulated Flow Overview
 
-Diagram berikut menggambarkan alur data ujung ke ujung yang direplikasi pada sandbox ini.
+The following diagram illustrates the end to end data flow replicated in this sandbox.
 
 ```mermaid
 flowchart TD
-    A["Sample Log Generator<br/>(pengganti CVM/PCVM Nutanix)"] -->|"syslog TCP 5141"| B["Graylog<br/>Stream: Nutanix Network Logs"]
+    A["Sample Log Generator<br/>(replaces Nutanix CVM/PCVM)"] -->|"syslog TCP 5141"| B["Graylog<br/>Stream: Nutanix Network Logs"]
     B --> C["Pipeline<br/>Nutanix Prism Central Parser"]
     B --> D["Pipeline<br/>Nutanix OS Audit Parser"]
     C --> E["OpenSearch<br/>index: nutanix_network_*"]
@@ -20,128 +20,128 @@ flowchart TD
     E --> F["Grafana<br/>Dashboard: Nutanix Network Logs Monitoring"]
 ```
 
-Tipe log yang dicakup (meniru format asli Prism Central):
+Log types covered (mirroring the real Prism Central format):
 
-| Tipe | Contoh | Aturan Terkait |
-|------|--------|----------------|
-| `api_audit` | pihak yang mengakses API atau UI, endpoint, dan method | Parse API Audit, Flag External, Flag Critical, Flag API Error |
-| `cvm_audit` | auditd atau audispd internal CVM (su/sudo) | CVM Extract Fields, Drop Broken |
-| `flow_service` | peristiwa microsegmentation atau IDF | Parse Flow Service Logs |
-| `consolidated_audit` | audit terstruktur berformat JSON (login, logout, perubahan entity) | Parse Audit JSON |
+| Type | Example | Related Rules |
+|------|---------|---------------|
+| `api_audit` | who accesses the API or UI, endpoint, and method | Parse API Audit, Flag External, Flag Critical, Flag API Error |
+| `cvm_audit` | CVM internal auditd or audispd (su/sudo) | CVM Extract Fields, Drop Broken |
+| `flow_service` | microsegmentation or IDF events | Parse Flow Service Logs |
+| `consolidated_audit` | structured JSON audit (login, logout, entity changes) | Parse Audit JSON |
 
-## Struktur Folder
+## Folder Structure
 
 ```
 nutanix-soc-sandbox/
-├── docker-compose.yml            # tumpukan lengkap (Graylog, OpenSearch, Grafana, Mongo)
+├── docker-compose.yml            # full stack (Graylog, OpenSearch, Grafana, Mongo)
 ├── README.md
-├── VERSION                       # versi proyek
-├── requirements.txt              # dependensi Python (seluruhnya pustaka standar)
-├── .env.example                  # contoh variabel lingkungan untuk Docker
-├── Makefile                      # perintah singkat untuk operasi umum
+├── VERSION                       # project version
+├── requirements.txt              # Python dependencies (all standard library)
+├── .env.example                  # example environment variables for Docker
+├── Makefile                      # shortcut commands for common operations
 ├── docs/
-│   ├── ARCHITECTURE.md           # penjelasan arsitektur dan alur data
-│   ├── SETUP.md                  # langkah pemasangan terperinci
-│   ├── FIELD-REFERENCE.md        # daftar field hasil parsing
-│   └── DETECTION-RULES.md        # kasus penggunaan keamanan per aturan dan gagasan alerting
+│   ├── ARCHITECTURE.md           # architecture and data flow explanation
+│   ├── SETUP.md                  # detailed setup steps
+│   ├── FIELD-REFERENCE.md        # list of parsed fields
+│   └── DETECTION-RULES.md        # security use cases per rule and alerting ideas
 ├── graylog/
-│   ├── inputs/                   # konfigurasi input Syslog TCP 5141
-│   ├── rules/                    # 8 aturan pipeline (.grok)
-│   ├── pipelines/                # 2 definisi pipeline
-│   └── content-pack/             # content pack JSON (impor sekali klik)
+│   ├── inputs/                   # Syslog TCP 5141 input configuration
+│   ├── rules/                    # 8 pipeline rules (.grok)
+│   ├── pipelines/                # 2 pipeline definitions
+│   └── content-pack/             # content pack JSON (one click import)
 ├── grafana/
-│   ├── datasources/              # provisioning datasource NUTANIX (OpenSearch)
-│   └── dashboards/               # dashboard JSON (Terms dan Count, tanpa .keyword)
+│   ├── datasources/              # NUTANIX datasource provisioning (OpenSearch)
+│   └── dashboards/               # dashboard JSON (Terms and Count, without .keyword)
 ├── sample-data/
-│   ├── sandbox_nutanix_logs.csv       # 2500 baris log sintetis (seluruh tipe)
-│   └── sample_consolidated_audit.log  # contoh format consolidated_audit
+│   ├── sandbox_nutanix_logs.csv       # 2500 lines of synthetic logs (all types)
+│   └── sample_consolidated_audit.log  # consolidated_audit format example
 └── scripts/
-    ├── generate_sample_logs.py   # pembangkit data sandbox
-    ├── feed_logs.py              # pengirim CSV ke Graylog syslog TCP
-    ├── simulate_pipeline.py      # pemeriksa hasil parsing luring (tanpa Docker)
-    └── validate.py               # uji mandiri validitas dan konsistensi proyek
+    ├── generate_sample_logs.py   # sandbox data generator
+    ├── feed_logs.py              # sends CSV to Graylog syslog TCP
+    ├── simulate_pipeline.py      # checks parsing results offline (without Docker)
+    └── validate.py               # self test for project validity and consistency
 ```
 
-## Validasi Cepat (Uji Mandiri)
+## Quick Validation (Self Test)
 
-Sebelum memulai, pastikan proyek dalam keadaan konsisten dengan menjalankan perintah berikut.
+Before starting, ensure the project is in a consistent state by running the following command.
 
 ```bash
 python3 scripts/validate.py
 ```
 
-Perintah tersebut memeriksa validitas JSON dan YAML, konsistensi antara aturan dan pipeline, kecocokan regex dengan data contoh, serta referensi datasource. Kode keluaran nol menandakan seluruh pemeriksaan lolos.
+This command checks JSON and YAML validity, consistency between rules and pipelines, regex matching against the sample data, and datasource references. An exit code of zero indicates that all checks passed.
 
-## Cara Penggunaan
+## Usage
 
-Tersedia dua jalur penggunaan, yaitu jalur cepat tanpa Docker dan jalur tumpukan penuh dengan Docker.
+Two usage paths are available, namely a quick path without Docker and a full stack path with Docker.
 
-### Jalur A: Cepat Tanpa Docker (Memeriksa Logika Parsing)
+### Path A: Quick Without Docker (Checking Parsing Logic)
 
-Jalur ini hanya membutuhkan Python 3 dan tidak memerlukan Graylog maupun OpenSearch.
+This path requires only Python 3 and does not need Graylog or OpenSearch.
 
 ```bash
 cd scripts
 python3 simulate_pipeline.py --file ../sample-data/sandbox_nutanix_logs.csv
 ```
 
-Keluaran berupa ringkasan tipe log, pengguna teratas, tipe klien, endpoint, dan tipe alert. Ringkasan tersebut merupakan hasil penerapan logika aturan terhadap data contoh sehingga bermanfaat untuk memahami keluaran setiap aturan.
+The output is a summary of log types, top users, client types, endpoints, and alert types. This summary results from applying the rule logic to the sample data, which helps you understand the output of each rule.
 
-Untuk membangkitkan ulang data dengan jumlah atau seed yang berbeda:
+To regenerate the data with a different count or seed:
 
 ```bash
 python3 generate_sample_logs.py --count 5000 --seed 7 --out ../sample-data/sandbox_nutanix_logs.csv
 ```
 
-### Jalur B: Tumpukan Penuh (Docker)
+### Path B: Full Stack (Docker)
 
-Jalur ini membutuhkan Docker beserta Docker Compose dan RAM sekitar 4 GB.
+This path requires Docker with Docker Compose and approximately 4 GB of RAM.
 
 ```bash
-# 1. Menjalankan tumpukan
+# 1. Start the stack
 docker compose up -d
 
-# 2. Menunggu Graylog siap (sekitar 1 hingga 2 menit), lalu membuka http://localhost:9000 (admin/admin)
+# 2. Wait for Graylog to be ready (about 1 to 2 minutes), then open http://localhost:9000 (admin/admin)
 
-# 3. Mengimpor konfigurasi di antarmuka Graylog melalui dua opsi:
-#    OPSI CEPAT (Content Pack):
-#      System, lalu Content Packs, lalu Upload,
-#      lalu pilih graylog/content-pack/nutanix-soc-content-pack.json,
-#      lalu Install (seluruh 8 aturan dan 2 pipeline langsung terpasang)
-#    OPSI MANUAL:
-#      Input     : lihat graylog/inputs/nutanix-syslog-tcp-input.json
-#      Rules     : salin dan tempel tiap berkas di graylog/rules/*.grok
-#      Pipelines : buat 2 pipeline sesuai graylog/pipelines/*.pipeline
-#    Setelah impor, hubungkan kedua pipeline ke stream Nutanix Network Logs
+# 3. Import the configuration in the Graylog interface using one of two options:
+#    QUICK OPTION (Content Pack):
+#      System, then Content Packs, then Upload,
+#      then select graylog/content-pack/nutanix-soc-content-pack.json,
+#      then Install (all 8 rules and 2 pipelines are installed at once)
+#    MANUAL OPTION:
+#      Input     : see graylog/inputs/nutanix-syslog-tcp-input.json
+#      Rules     : copy and paste each file in graylog/rules/*.grok
+#      Pipelines : create 2 pipelines according to graylog/pipelines/*.pipeline
+#    After importing, connect both pipelines to the Nutanix Network Logs stream
 
-# 4. Mengirim log sandbox ke Graylog
+# 4. Send sandbox logs to Graylog
 cd scripts
 python3 feed_logs.py --host localhost --port 5141 \
     --file ../sample-data/sandbox_nutanix_logs.csv --rate 30
 
-# 5. Membuka Grafana di http://localhost:3000 (admin/admin)
-#    Datasource NUTANIX dan dashboard telah ter-provisioning secara otomatis.
+# 5. Open Grafana at http://localhost:3000 (admin/admin)
+#    The NUTANIX datasource and dashboard are provisioned automatically.
 ```
 
-Untuk menyimulasikan aliran log secara langsung dan berkelanjutan, tambahkan opsi `--loop`.
+To simulate a continuous live log stream, add the `--loop` option.
 
 ```bash
 python3 feed_logs.py --loop --rate 20
 ```
 
-## Catatan Penting dari Sandbox Ini
+## Key Lessons From This Sandbox
 
-Beberapa pelajaran penting yang perlu diperhatikan dirangkum sebagai berikut.
+Several important lessons are summarized as follows.
 
-1. **Field bertipe teks tidak memiliki subfield `.keyword`.** Field hasil `set_field()` pada pipeline Graylog tersimpan di OpenSearch sebagai teks biasa. Pada Grafana, pengelompokan (Group By) harus menggunakan `nutanix_client_type` dan bukan `nutanix_client_type.keyword`. Subfield keyword tersebut tidak tersedia dan akan menyebabkan agregasi gagal.
+1. **Text type fields do not have a `.keyword` subfield.** Fields produced by `set_field()` in the Graylog pipeline are stored in OpenSearch as plain text. In Grafana, Group By must use `nutanix_client_type` and not `nutanix_client_type.keyword`. That keyword subfield does not exist and causes aggregation to fail.
 
-2. **Pemecahan data (breakdown) pada panel Grafana** menggunakan metrik `Count` dipadukan dengan agregasi bucket `Terms` pada field kategori. Konfigurasi yang benar dapat dilihat pada berkas `grafana/dashboards/nutanix-monitoring-dashboard.json`.
+2. **Breakdown on Grafana panels** uses the `Count` metric combined with a `Terms` bucket aggregation on a category field. The correct configuration can be seen in the `grafana/dashboards/nutanix-monitoring-dashboard.json` file.
 
-3. **Format `api_audit` (key-value) lebih dominan** dibandingkan `consolidated_audit` (JSON). Keduanya disertakan dalam data contoh, dan aturan Parse Audit JSON menangani format JSON. Pada penerapan nyata, format JSON umumnya lebih jarang muncul sehingga aturan yang menganggur merupakan hal yang wajar.
+3. **The `api_audit` format (key-value) is more dominant** than `consolidated_audit` (JSON). Both are included in the sample data, and the Parse Audit JSON rule handles the JSON format. In real deployments the JSON format usually appears less often, so an idle rule is expected behavior.
 
-4. **Operasi kritis relatif jarang** karena method GET lebih dominan. Sedikitnya jumlah POST, PUT, atau DELETE merupakan kondisi yang wajar pada lingkungan yang stabil dan bukan merupakan kesalahan.
+4. **Critical operations are relatively rare** because the GET method is dominant. A small number of POST, PUT, or DELETE operations is normal in a stable environment and is not an error.
 
-Penjelasan lebih lanjut dapat dilihat pada folder `docs/`.
+Further explanations can be found in the `docs/` folder.
 
 ## Author
 

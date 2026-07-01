@@ -1,17 +1,17 @@
-Nutanix SOC Sandbox : Hanya untuk Keperluan Pembelajaran
-========================================================
-Materi ini disediakan untuk keperluan pembelajaran dan demonstrasi.
+Nutanix SOC Sandbox: For Learning Purposes Only
+===============================================
+This material is provided for learning and demonstration purposes.
 
-Ketentuan penggunaan adalah sebagai berikut.
+The terms of use are as follows.
 
-Seluruh data, hostname, username, UUID, dan alamat IP bersifat fiktif dan
-tidak merepresentasikan sistem maupun organisasi nyata mana pun.
+All data, hostnames, usernames, UUIDs, and IP addresses are fictional and do
+not represent any real system or organization.
 
-Kredensial yang tercantum, termasuk kata sandi sandbox, hanya berlaku untuk
-lingkungan lokal yang terisolasi dan tidak boleh digunakan pada produksi.
+The credentials listed, including the sandbox password, apply only to an
+isolated local environment and must not be used in production.
 
-Nutanix, Prism Central, Graylog, OpenSearch, dan Grafana merupakan merek dagang
-milik pemiliknya masing-masing. Sandbox ini tidak berafiliasi dengan, tidak
-didukung oleh, dan tidak disponsori oleh pemilik merek tersebut.
+Nutanix, Prism Central, Graylog, OpenSearch, and Grafana are trademarks of
+their respective owners. This sandbox is not affiliated with, endorsed by, or
+sponsored by the owners of those trademarks.
 
-Penggunaan materi ini menjadi tanggung jawab pengguna sepenuhnya.
+Use of this material is entirely at the user's own responsibility.

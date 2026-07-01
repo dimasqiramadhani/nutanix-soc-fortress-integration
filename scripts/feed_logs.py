@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Nutanix SOC Sandbox : Pengirim Log
-==================================
-Skrip ini membaca berkas sandbox_nutanix_logs.csv dan mengirim tiap baris ke
-input Graylog Syslog TCP (bawaan localhost:5141), meniru Nutanix yang
-meneruskan syslog. Dengan demikian, perangkat Nutanix nyata tidak diperlukan.
+Nutanix SOC Sandbox: Log Feeder
+===============================
+This script reads the sandbox_nutanix_logs.csv file and sends each line to the
+Graylog Syslog TCP input (default localhost:5141), mirroring Nutanix forwarding
+syslog. As a result, a real Nutanix device is not required.
 
-Contoh penggunaan:
+Example usage:
   python3 feed_logs.py --host localhost --port 5141 \
       --file ../sample-data/sandbox_nutanix_logs.csv --rate 20
 
-  --rate berarti jumlah pesan per detik (nilai 0 berarti secepat mungkin)
-  --loop berarti mengulang terus untuk menyimulasikan aliran langsung
+  --rate means the number of messages per second (a value of 0 means as fast as possible)
+  --loop means repeating continuously to simulate a live stream
 """
 
 import argparse
@@ -22,7 +22,7 @@ from datetime import datetime
 
 
 def syslog_frame(source, message, ts=None):
-    """Bungkus jadi frame syslog RFC-ish yang dimengerti Graylog Syslog TCP."""
+    """Wrap into an RFC style syslog frame understood by Graylog Syslog TCP."""
     if ts is None:
         ts = datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
         # sisipkan colon di offset tz: +0700 -> +07:00
@@ -37,7 +37,7 @@ def main():
     ap.add_argument("--port", type=int, default=5141)
     ap.add_argument("--file", default="../sample-data/sandbox_nutanix_logs.csv")
     ap.add_argument("--rate", type=float, default=20.0,
-                    help="pesan per detik (0 = tanpa jeda)")
+                    help="messages per second (0 = no delay)")
     ap.add_argument("--loop", action="store_true")
     args = ap.parse_args()
 
@@ -45,7 +45,7 @@ def main():
         rows = []
         with open(args.file) as f:
             reader = csv.reader(f, delimiter=";")
-            next(reader, None)  # skip header
+            next(reader, None)  # skip the header
             for r in reader:
                 if len(r) < 3:
                     continue
@@ -54,7 +54,7 @@ def main():
         return rows
 
     rows = load_rows()
-    print(f"[+] {len(rows)} baris dimuat dari {args.file}")
+    print(f"[+] {len(rows)} lines loaded from {args.file}")
     delay = (1.0 / args.rate) if args.rate > 0 else 0
 
     sent = 0
@@ -66,20 +66,20 @@ def main():
                     sock.sendall(frame.encode("utf-8"))
                     sent += 1
                     if sent % 100 == 0:
-                        print(f"    terkirim {sent} pesan...")
+                        print(f"    sent {sent} messages...")
                     if delay:
                         time.sleep(delay)
             if not args.loop:
                 break
-            print("[*] loop: mulai lagi dari awal")
+            print("[*] loop: starting again from the beginning")
     except ConnectionRefusedError:
-        print(f"[!] Tidak bisa connect ke {args.host}:{args.port}. "
-              f"Pastikan Graylog input Syslog TCP jalan di port itu.")
+        print(f"[!] Unable to connect to {args.host}:{args.port}. "
+              f"Ensure the Graylog Syslog TCP input is running on that port.")
         return
     except KeyboardInterrupt:
-        print("\n[*] dihentikan user")
+        print("\n[*] stopped by the user")
 
-    print(f"[+] Selesai. Total terkirim: {sent} pesan")
+    print(f"[+] Done. Total sent: {sent} messages")
 
 
 if __name__ == "__main__":
